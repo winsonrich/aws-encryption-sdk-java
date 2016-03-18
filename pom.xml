@@ -82,9 +82,6 @@
           <minmemory>128m</minmemory>
           <maxmemory>1024m</maxmemory>
           <additionalparam>-Xdoclint:none</additionalparam>
-          <links>
-            <link>http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc</link>
-          </links>
         </configuration>
       </plugin>
     </plugins>
