@@ -1,6 +1,6 @@
 # AWS Encryption SDK for Java
 
-The AWS Encryption SDK enables secure client-side encryption by using cryptography best practices to protect your data and the encryption keys used to protect that data. Each data object is protected with a unique data encryption key (DEK), and the DEK is protected with a key encryption key (KEK) called a *master key*. The encrypted DEK is combined with the encrypted data into a single encrypted message, so you don't need to keep track of the DEKs for your data. The SDK supports master keys in the [AWS Key Management Service](https://aws.amazon.com/kms/) (AWS KMS), and it also provides APIs to define and use other master key providers. The SDK provides methods for encrypting and decrypting strings, byte arrays, and byte streams. For details, see the [example code][examples].
+The AWS Encryption SDK enables secure client-side encryption. It uses cryptography best practices to protect your data and the encryption keys used to protect that data. Each data object is protected with a unique data encryption key (DEK), and the DEK is protected with a key encryption key (KEK) called a *master key*. The encrypted DEK is combined with the encrypted data into a single [encrypted message](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/message-format.html), so you don't need to keep track of the DEKs for your data. The SDK supports master keys in [AWS Key Management Service](https://aws.amazon.com/kms/) (KMS), and it also provides APIs to define and use other master key providers. The SDK provides methods for encrypting and decrypting strings, byte arrays, and byte streams. For details, see the [example code][examples] and the [Javadoc](https://awslabs.github.io/aws-encryption-sdk-java/javadoc/).
 
 For more details about the design and architecture of the SDK, see the [official documentation](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/).
 
@@ -9,23 +9,60 @@ For more details about the design and architecture of the SDK, see the [official
 ### Required Prerequisites
 To use this SDK you must have:
 
-* **A Java development environment**
-If you do not have one, go to [Java SE Downloads](https://www.oracle.com/technetwork/java/javase/downloads/index.html) and then download and install the Java SE Development Kit (JDK).
+* **A Java 8 development environment**
+If you do not have one, go to [Java SE Downloads](https://www.oracle.com/technetwork/java/javase/downloads/index.html) and then download and install the Java SE Development Kit (JDK). Java 8 or higher is recommended.
 
 * **Bouncy Castle**
-Bouncy Castle provides a cryptography API for Java. If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html and then download the provider file that corresponds to your JDK.
+Bouncy Castle provides a cryptography API for Java. If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html and then download the provider file that corresponds to your JDK. Or, you can pick it up from Maven:
+
+  ```xml
+  <dependency>
+    <groupId>org.bouncycastle</groupId>
+    <artifactId>bcprov-ext-jdk15on</artifactId>
+    <version>1.54</version>
+  </dependency>
+  ```
 
 ### Optional Prerequisites
 
 You don't need an Amazon Web Services (AWS) account to use this SDK, but some of the [example code][examples] requires an AWS account, a customer master key (CMK) in AWS KMS, and the AWS SDK for Java.
 
-* **To sign up for AWS**, go to [Sign In or Create an AWS Account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) and choose **I am a new user.** Follow the instructions to sign up and create an AWS account.
+* **To create an AWS account**, go to [Sign In or Create an AWS Account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) and choose **I am a new user.** Follow the instructions to create an AWS account.
 
 * **To create a CMK in AWS KMS**, go to [Creating Keys](https://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html) in the KMS documentation and then follow the instructions on that page.
 
-* **To download and install the AWS SDK for Java**, go to [Installing the AWS SDK for Java](https://docs.aws.amazon.com/AWSSdkDocsJava/latest/DeveloperGuide/java-dg-install-sdk.html) in the *AWS SDK for Java Developer Guide* and then follow the instructions on that page.
+* **To download and install the AWS SDK for Java**, go to [Installing the AWS SDK for Java](https://docs.aws.amazon.com/AWSSdkDocsJava/latest/DeveloperGuide/java-dg-install-sdk.html) in the AWS SDK for Java documentation and then follow the instructions on that page.
 
-### Download the SDK
+### Download
+
+You can get the latest release from Maven:
+
+```xml
+<dependency>
+  <groupId>com.amazonaws</groupId>
+  <artifactId>aws-encryption-sdk-java</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+Don't forget to enable the download of snapshot jars from Maven:
+
+```xml
+<profiles>
+  <profile>
+    <id>allow-snapshots</id>
+    <activation><activeByDefault>true</activeByDefault></activation>
+    <repositories>
+      <repository>
+        <id>snapshots-repo</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        <releases><enabled>false</enabled></releases>
+        <snapshots><enabled>true</enabled></snapshots>
+      </repository>
+    </repositories>
+  </profile>
+</profiles>
+```
 
 ### Get Started
 
@@ -36,7 +73,7 @@ The following code sample demonstrates how to get started:
 3. Encrypt and decrypt data
 
 ```java
-// This sample code encrypts and then decrypts a string using a KMS master key.
+// This sample code encrypts and then decrypts a string using a KMS CMK.
 // You provide the KMS key ARN and plaintext string as arguments.
 package com.amazonaws.crypto.examples;
 
@@ -95,10 +132,10 @@ public class StringExample {
 }
 ```
 
-For more examples, look in the [examples directory][examples].
+More examples are available in the [examples directory][examples].
 
 ## FAQ
 
 See the [Frequently Asked Questions](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/faq.html) page in the official documentation.
 
-[examples]: examples/com/amazonaws/crypto/examples/
+[examples]: https://github.com/awslabs/aws-encryption-sdk-java/tree/master/src/examples/java/com/amazonaws/crypto/examples
