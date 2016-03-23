@@ -13,7 +13,6 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
-
 /**
  * This interface defines the contract for the implementation of encryption and decryption handlers
  * in this library.
