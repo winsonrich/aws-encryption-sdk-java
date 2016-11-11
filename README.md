@@ -1,4 +1,4 @@
-o# AWS Encryption SDK for Java
+# AWS Encryption SDK for Java
 
 The AWS Encryption SDK enables secure client-side encryption. It uses cryptography best practices to protect your data and the encryption keys used to protect that data. Each data object is protected with a unique data encryption key (DEK), and the DEK is protected with a key encryption key (KEK) called a *master key*. The encrypted DEK is combined with the encrypted data into a single [encrypted message](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/message-format.html), so you don't need to keep track of the DEKs for your data. The SDK supports master keys in [AWS Key Management Service](https://aws.amazon.com/kms/) (KMS), and it also provides APIs to define and use other master key providers. The SDK provides methods for encrypting and decrypting strings, byte arrays, and byte streams. For details, see the [example code][examples] and the [Javadoc](https://awslabs.github.io/aws-encryption-sdk-java/javadoc/).
 
@@ -10,10 +10,14 @@ For more details about the design and architecture of the SDK, see the [official
 To use this SDK you must have:
 
 * **A Java 8 development environment**
-If you do not have one, go to [Java SE Downloads](https://www.oracle.com/technetwork/java/javase/downloads/index.html) and then download and install the Java SE Development Kit (JDK). Java 8 or higher is recommended.
+
+  If you do not have one, go to [Java SE Downloads](https://www.oracle.com/technetwork/java/javase/downloads/index.html) on the Oracle website, then download and install the Java SE Development Kit (JDK). Java 8 or higher is recommended.
+
+  **Note:** If you use the Oracle JDK, you must also download and install the [Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html).
 
 * **Bouncy Castle**
-Bouncy Castle provides a cryptography API for Java. If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html and then download the provider file that corresponds to your JDK. Or, you can pick it up from Maven:
+
+  Bouncy Castle provides a cryptography API for Java. If you do not have Bouncy Castle, go to https://bouncycastle.org/latest_releases.html, then download the provider file that corresponds to your JDK. Or, you can pick it up from Maven:
 
   ```xml
   <dependency>
@@ -27,7 +31,7 @@ Bouncy Castle provides a cryptography API for Java. If you do not have Bouncy Ca
 
 You don't need an Amazon Web Services (AWS) account to use this SDK, but some of the [example code][examples] requires an AWS account, a customer master key (CMK) in AWS KMS, and the AWS SDK for Java.
 
-* **To create an AWS account**, go to [Sign In or Create an AWS Account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) and choose **I am a new user.** Follow the instructions to create an AWS account.
+* **To create an AWS account**, go to [Sign In or Create an AWS Account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) and then choose **I am a new user.** Follow the instructions to create an AWS account.
 
 * **To create a CMK in AWS KMS**, go to [Creating Keys](https://docs.aws.amazon.com/kms/latest/developerguide/create-keys.html) in the KMS documentation and then follow the instructions on that page.
 
@@ -68,9 +72,9 @@ Don't forget to enable the download of snapshot jars from Maven:
 
 The following code sample demonstrates how to get started:
 
-1. Instantiate the SDK
-2. Define the master key provider
-3. Encrypt and decrypt data
+1. Instantiate the SDK.
+2. Define the master key provider.
+3. Encrypt and decrypt data.
 
 ```java
 // This sample code encrypts and then decrypts a string using a KMS CMK.
@@ -132,7 +136,7 @@ public class StringExample {
 }
 ```
 
-More examples are available in the [examples directory][examples].
+You can find more examples in the [examples directory][examples].
 
 ## FAQ
 
