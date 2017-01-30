@@ -102,10 +102,13 @@ public abstract class MasterKeyProvider<K extends MasterKey<K>> {
         if (t == null || t.isEmpty()) {
             return new CannotUnwrapDataKeyException("Unable to decrypt any data keys");
         } else {
-            final CannotUnwrapDataKeyException ex = new CannotUnwrapDataKeyException("Unable to decrypt any data keys",
-                    t.get(0));
+            CannotUnwrapDataKeyException ex = null;
             for (final Throwable e : t) {
-                ex.addSuppressed(e);
+                if (ex == null) {
+                    ex = new CannotUnwrapDataKeyException("Unable to decrypt any data keys", e);
+                } else {
+                    ex.addSuppressed(e);
+                }
             }
             return ex;
         }
