@@ -13,16 +13,140 @@
 
 package com.amazonaws.encryptionsdk.internal;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 /**
  * Internal utility methods.
  */
 public final class Utils {
+    // SecureRandom objects can both be expensive to initialize and incur synchronization costs.
+    // This allows us to minimize both initializations and keep SecureRandom usage thread local
+    // to avoid lock contention.
+    private static final ThreadLocal<SecureRandom> LOCAL_RANDOM = new ThreadLocal<SecureRandom>() {
+      @Override
+      protected SecureRandom initialValue() {
+          final SecureRandom rnd = new SecureRandom();
+          rnd.nextBoolean(); // Force seeding
+          return rnd;
+      }
+    };
+
     private Utils() {
         // Prevent instantiation
+    }
+
+    /*
+     * In some areas we need to be able to assign a total order over Java objects - generally with some primary sort,
+     * but we need a fallback sort that always works in order to ensure that we don't falsely claim objects A and B
+     * are equal just because the primary sort declares them to have equal rank.
+     *
+     * To do this, we'll define a fallback sort that assigns an arbitrary order to all objects. This order is
+     * implemented by first comparing hashcode, and in the rare case where we are asked to compare two objects with
+     * equal hashcode, we explicitly assign an index to them - using a WeakHashMap to track this index - and sort
+     * based on this index.
+     */
+    private static AtomicLong FALLBACK_COUNTER = new AtomicLong(0);
+    private static WeakHashMap<Object, Long> FALLBACK_COMPARATOR_MAP = new WeakHashMap<>();
+
+    private static synchronized long getFallbackObjectId(Object object) {
+        return FALLBACK_COMPARATOR_MAP.computeIfAbsent(object, ignored -> FALLBACK_COUNTER.incrementAndGet());
+    }
+
+    /**
+     * Provides an <i>arbitrary</i> but consistent total ordering over all objects. This comparison function will
+     * return 0 if and only if a == b, and otherwise will return arbitrarily either -1 or 1, but will do so in a way
+     * that results in a consistent total order.
+     *
+     * @param a
+     * @param b
+     * @return -1 or 1 (consistently) if a != b; 0 if a == b.
+     */
+    public static int compareObjectIdentity(Object a, Object b) {
+        if (a == b) {
+            return 0;
+        }
+
+        if (a == null) {
+            return -1;
+        }
+
+        if (b == null) {
+            return 1;
+        }
+
+        int hashCompare = Integer.compare(System.identityHashCode(a), System.identityHashCode(b));
+        if (hashCompare != 0) {
+            return hashCompare;
+        }
+
+        // Unfortunately these objects have identical hashcodes, so we need to find some other way to compare them.
+        // We'll do this by mapping them to an incrementing counter, and comparing their assigned IDs instead.
+        int fallbackCompare = Long.compare(getFallbackObjectId(a), getFallbackObjectId(b));
+        if (fallbackCompare == 0) {
+            throw new AssertionError("Failed to assign unique order to objects");
+        }
+
+        return fallbackCompare;
+    }
+
+    public static long saturatingAdd(long a, long b) {
+        long r = a + b;
+
+        if (a > 0 && b > 0 && r < a) {
+            return Long.MAX_VALUE;
+        }
+
+        if (a < 0 && b < 0 && r > a) {
+            return Long.MIN_VALUE;
+        }
+
+        // If the signs between a and b differ, overflow is impossible.
+
+        return r;
+    }
+
+    /**
+     * Comparator that performs a lexicographical comparison of byte arrays, treating them as unsigned.
+     */
+    public static class ComparingByteArrays implements Comparator<byte[]>, Serializable {
+        // We don't really need to be serializable, but it doesn't hurt, and FindBugs gets annoyed if we're not.
+        private static final long serialVersionUID = 0xdf641037ffe509e2L;
+
+        @Override public int compare(byte[] o1, byte[] o2) {
+            return new ComparingByteBuffers().compare(ByteBuffer.wrap(o1), ByteBuffer.wrap(o2));
+        }
+    }
+
+    public static class ComparingByteBuffers implements Comparator<ByteBuffer>, Serializable {
+        private static final long serialVersionUID = 0xa3c4a7300fbbf043L;
+
+        @Override public int compare(ByteBuffer o1, ByteBuffer o2) {
+            o1 = o1.slice();
+            o2 = o2.slice();
+
+            int commonLength = Math.min(o1.remaining(), o2.remaining());
+
+            for (int i = 0; i < commonLength; i++) {
+                // Perform zero-extension as we want to treat the bytes as unsigned
+                int v1 = o1.get(i) & 0xFF;
+                int v2 = o2.get(i) & 0xFF;
+
+                if (v1 != v2) {
+                    return v1 - v2;
+                }
+            }
+
+            // The longer buffer is bigger (0x00 comes after end-of-buffer)
+            return o1.remaining() - o2.remaining();
+        }
     }
 
     /**
@@ -60,6 +184,10 @@ public final class Utils {
         }
     }
 
+    public static SecureRandom getSecureRandom() {
+        return LOCAL_RANDOM.get();
+    }
+
     /**
      * Generate the AAD bytes to use when encrypting/decrypting content. The
      * generated AAD is a block of bytes containing the provided message
@@ -88,5 +216,9 @@ public final class Utils {
         aad.putLong(len);
     
         return aad.array();
+    }
+
+    static IllegalArgumentException cannotBeNegative(String field) {
+        return new IllegalArgumentException(field + " cannot be negative");
     }
 }

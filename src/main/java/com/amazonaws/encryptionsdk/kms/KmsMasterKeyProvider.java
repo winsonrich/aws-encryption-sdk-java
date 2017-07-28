@@ -35,6 +35,7 @@ import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.internal.StaticCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClient;
 
 /**
@@ -43,7 +44,7 @@ import com.amazonaws.services.kms.AWSKMSClient;
  */
 public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implements KmsMethods {
     private static final String PROVIDER_NAME = "aws-kms";
-    private final AWSKMSClient kms_;
+    private final AWSKMS kms_;
     private final List<String> keyIds_;
     private final List<String> grantTokens_ = new ArrayList<>();
     private Region region_;
@@ -121,7 +122,12 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         this(new AWSKMSClient(creds, clientConfiguration), region, keyIds);
     }
 
-    protected KmsMasterKeyProvider(final AWSKMSClient kms, final Region region, final List<String> keyIds) {
+    /**
+     * Returns an instance of this object with the supplied client and region; the client will be 
+     * configured to use the provided region. All keys listed in {@code keyIds} will be used to 
+     * protect data. 
+     */
+    public KmsMasterKeyProvider(final AWSKMS kms, final Region region, final List<String> keyIds) {
         kms_ = kms;
         region_ = region;
         regionName_ = region.getName();
@@ -211,8 +217,12 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      * and {@code regionName}.
      */
     public void setCustomEndpoint(final String regionName, final String endPoint) {
-        kms_.setEndpoint(endPoint);
-        kms_.setSignerRegionOverride(regionName);
+        if (kms_ instanceof AWSKMSClient) {
+            kms_.setEndpoint(endPoint);
+            ((AWSKMSClient)kms_).setSignerRegionOverride(regionName);
+        } else {
+            throw new IllegalStateException("This method can only be called when kms is an instance of AWSKMSClient");
+        }
         region_ = null;
         regionName_ = regionName;
     }

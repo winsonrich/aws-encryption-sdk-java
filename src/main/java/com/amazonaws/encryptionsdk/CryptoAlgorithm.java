@@ -46,49 +46,49 @@ public enum CryptoAlgorithm {
     /**
      * AES-GCM 128
      */
-    ALG_AES_128_GCM_IV12_TAG16_NO_KDF(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 16, 0x0014, "AES", 16),
+    ALG_AES_128_GCM_IV12_TAG16_NO_KDF(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 16, 0x0014, "AES", 16, false),
     /**
      * AES-GCM 192
      */
-    ALG_AES_192_GCM_IV12_TAG16_NO_KDF(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 24, 0x0046, "AES", 24),
+    ALG_AES_192_GCM_IV12_TAG16_NO_KDF(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 24, 0x0046, "AES", 24, false),
     /**
      * AES-GCM 256
      */
-    ALG_AES_256_GCM_IV12_TAG16_NO_KDF(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 32, 0x0078, "AES", 32),
+    ALG_AES_256_GCM_IV12_TAG16_NO_KDF(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 32, 0x0078, "AES", 32, false),
     /**
      * AES-GCM 128 with HKDF-SHA256
      */
     ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 16, 0x0114, "HkdfSHA256",
-            16),
+                                           16, true),
     /**
      * AES-GCM 192
      */
     ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA256(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 24, 0x0146, "HkdfSHA256",
-            24),
+                                           24, true),
     /**
      * AES-GCM 256
      */
     ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA256(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 32, 0x0178, "HkdfSHA256",
-            32),
+                                           32, true),
 
     /**
      * AES-GCM 128 with ECDSA (SHA256 with the secp256r1 curve)
      */
     ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 16, 0x0214,
-            "HkdfSHA256", 16,
-            "SHA256withECDSA", 72),
+                                                      "HkdfSHA256", 16,
+                                                      true, "SHA256withECDSA", 71),
     /**
      * AES-GCM 192 with ECDSA (SHA384 with the secp384r1 curve)
      */
     ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 24, 0x0346,
-            "HkdfSHA384", 24,
-            "SHA384withECDSA", 104),
+                                                      "HkdfSHA384", 24,
+                                                      true, "SHA384withECDSA", 103),
     /**
      * AES-GCM 256 with ECDSA (SHA384 with the secp384r1 curve)
      */
     ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384(128, 12, 16, Constants.GCM_MAX_CONTENT_LEN, "AES", 32, 0x0378,
-            "HkdfSHA384", 32,
-            "SHA384withECDSA", 104);
+                                                      "HkdfSHA384", 32,
+                                                      true, "SHA384withECDSA", 103);
 
     private final int blockSizeBits_;
     private final byte nonceLenBytes_;
@@ -101,6 +101,7 @@ public enum CryptoAlgorithm {
     private final short trailingSigLen_;
     private final String dataKeyAlgo_;
     private final int dataKeyLen_;
+    private final boolean safeToCache_;
 
     static {
         try {
@@ -124,26 +125,30 @@ public enum CryptoAlgorithm {
         }
     }
 
-    private CryptoAlgorithm(final int blockSizeBits, final int nonceLenBytes, final int tagLenBytes,
+    private CryptoAlgorithm(
+            final int blockSizeBits, final int nonceLenBytes, final int tagLenBytes,
             final long maxContentLen, final String keyAlgo, final int keyLenBytes, final int value,
-            final String dataKeyAlgo, final int dataKeyLen) {
+            final String dataKeyAlgo, final int dataKeyLen, boolean safeToCache
+    ) {
         this(blockSizeBits, nonceLenBytes, tagLenBytes,
-                maxContentLen, keyAlgo, keyLenBytes, value,
-                dataKeyAlgo, dataKeyLen,
-                null, 0);
+             maxContentLen, keyAlgo, keyLenBytes, value,
+             dataKeyAlgo, dataKeyLen, safeToCache, null, 0);
 
     }
 
-    private CryptoAlgorithm(final int blockSizeBits, final int nonceLenBytes, final int tagLenBytes,
+    private CryptoAlgorithm(
+            final int blockSizeBits, final int nonceLenBytes, final int tagLenBytes,
             final long maxContentLen, final String keyAlgo, final int keyLenBytes, final int value,
             final String dataKeyAlgo, final int dataKeyLen,
-            final String trailingSignatureAlgo, final int trailingSignatureLength) {
+            boolean safeToCache, final String trailingSignatureAlgo, final int trailingSignatureLength
+    ) {
         blockSizeBits_ = blockSizeBits;
         nonceLenBytes_ = (byte) nonceLenBytes;
         tagLenBytes_ = tagLenBytes;
         keyAlgo_ = keyAlgo;
         keyLenBytes_ = keyLenBytes;
         maxContentLen_ = maxContentLen;
+        safeToCache_ = safeToCache;
         if (value > Short.MAX_VALUE || value < Short.MIN_VALUE) {
             throw new IllegalArgumentException("Invalid value " + value);
         }
@@ -238,6 +243,15 @@ public enum CryptoAlgorithm {
      */
     public String getTrailingSignatureAlgo() {
         return trailingSigAlgo_;
+    }
+
+    /**
+     * Returns whether data keys used with this crypto algorithm can safely be cached and reused for a different
+     * message. If this returns false, reuse of data keys is likely to result in severe cryptographic weaknesses,
+     * potentially even with only a single such use.
+     */
+    public boolean isSafeToCache() {
+        return safeToCache_;
     }
 
     /**

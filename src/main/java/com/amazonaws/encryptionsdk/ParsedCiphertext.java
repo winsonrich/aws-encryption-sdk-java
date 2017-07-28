@@ -16,6 +16,8 @@ package com.amazonaws.encryptionsdk;
 import com.amazonaws.encryptionsdk.internal.Utils;
 import com.amazonaws.encryptionsdk.model.CiphertextHeaders;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Exposes header information of ciphertexts to make it easier to inspect the algorithm, keys, and
  * encryption context prior to decryption.
@@ -40,6 +42,7 @@ public class ParsedCiphertext extends CiphertextHeaders {
      * Returns the raw ciphertext backing this object. This is <em>not</em> a defensive copy and so
      * must not be modified by callers.
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getCiphertext() {
         return ciphertext_;
     }

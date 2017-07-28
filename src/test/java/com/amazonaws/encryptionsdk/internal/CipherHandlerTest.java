@@ -48,13 +48,13 @@ public class CipherHandlerTest {
         final byte[] nonce = RandomBytesGenerator.generate(cryptoAlgorithm.getNonceLen());
 
         final SecretKey key = new SecretKeySpec(keyBytes, cryptoAlgorithm.name());
-        CipherHandler cipherHandler = createCipherHandler(key, nonce, cryptoAlgorithm, Cipher.ENCRYPT_MODE);
-        final byte[] encryptedBytes = cipherHandler.cipherData(content, 0, content.length);
+        CipherHandler cipherHandler = createCipherHandler(key, cryptoAlgorithm, Cipher.ENCRYPT_MODE);
+        final byte[] encryptedBytes = cipherHandler.cipherData(nonce, contentAad_, content, 0, content.length);
 
         encryptedBytes[0] += 1; // tamper the first byte in ciphertext
 
-        cipherHandler = createCipherHandler(key, nonce, cryptoAlgorithm, Cipher.DECRYPT_MODE);
-        cipherHandler.cipherData(encryptedBytes, 0, encryptedBytes.length);
+        cipherHandler = createCipherHandler(key, cryptoAlgorithm, Cipher.DECRYPT_MODE);
+        cipherHandler.cipherData(nonce, contentAad_, encryptedBytes, 0, encryptedBytes.length);
     }
 
     private boolean encryptDecryptContent(final CryptoAlgorithm cryptoAlgorithm) {
@@ -73,17 +73,16 @@ public class CipherHandlerTest {
         final byte[] nonce = RandomBytesGenerator.generate(cryptoAlgorithm.getNonceLen());
 
         final SecretKey key = new SecretKeySpec(keyBytes, cryptoAlgorithm.name());
-        CipherHandler cipherHandler = createCipherHandler(key, nonce, cryptoAlgorithm, Cipher.ENCRYPT_MODE);
-        final byte[] encryptedBytes = cipherHandler.cipherData(content, 0, content.length);
+        CipherHandler cipherHandler = createCipherHandler(key, cryptoAlgorithm, Cipher.ENCRYPT_MODE);
+        final byte[] encryptedBytes = cipherHandler.cipherData( nonce, contentAad_, content, 0, content.length);
 
-        cipherHandler = createCipherHandler(key, nonce, cryptoAlgorithm, Cipher.DECRYPT_MODE);
-        final byte[] decryptedBytes = cipherHandler.cipherData(encryptedBytes, 0, encryptedBytes.length);
+        cipherHandler = createCipherHandler(key, cryptoAlgorithm, Cipher.DECRYPT_MODE);
+        final byte[] decryptedBytes = cipherHandler.cipherData(nonce, contentAad_, encryptedBytes, 0, encryptedBytes.length);
 
         return decryptedBytes;
     }
 
-    private CipherHandler createCipherHandler(final SecretKey key, final byte[] nonce,
-            final CryptoAlgorithm cryptoAlgorithm, final int mode) {
-        return new CipherHandler(key, nonce, contentAad_, mode, cryptoAlgorithm);
+    private CipherHandler createCipherHandler(final SecretKey key, final CryptoAlgorithm cryptoAlgorithm, final int mode) {
+        return new CipherHandler(key, mode, cryptoAlgorithm);
     }
 }

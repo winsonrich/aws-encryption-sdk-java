@@ -78,7 +78,7 @@ public class EncryptionContextSerializer {
             encoder.onMalformedInput(CodingErrorAction.REPORT);
             encoder.onUnmappableCharacter(CodingErrorAction.REPORT);
 
-            final SortedMap<ByteBuffer, ByteBuffer> binaryEntries = new TreeMap<>();
+            final SortedMap<ByteBuffer, ByteBuffer> binaryEntries = new TreeMap<>(new Utils.ComparingByteBuffers());
             for (Entry<String, String> mapEntry : encryptionContext.entrySet()) {
                 if (mapEntry.getKey() == null || mapEntry.getValue() == null) {
                     throw new AwsCryptoException(

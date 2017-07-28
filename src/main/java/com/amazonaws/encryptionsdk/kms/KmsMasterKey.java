@@ -36,7 +36,7 @@ import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
-import com.amazonaws.services.kms.AWSKMSClient;
+import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.kms.model.EncryptRequest;
@@ -49,7 +49,7 @@ import com.amazonaws.services.kms.model.GenerateDataKeyResult;
  * {@link AwsCrypto}.
  */
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
-    private final AWSKMSClient kms_;
+    private final AWSKMS kms_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
     private final List<String> grantTokens_ = new ArrayList<>();
@@ -62,18 +62,18 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
     }
 
-    static KmsMasterKey getInstance(final AWSKMSClient kms, final String id,
+    static KmsMasterKey getInstance(final AWSKMS kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
         return new KmsMasterKey(kms, id, provider);
     }
 
-    private KmsMasterKey(final AWSKMSClient kms, final String id) {
+    private KmsMasterKey(final AWSKMS kms, final String id) {
         kms_ = kms;
         id_ = id;
         sourceProvider_ = this;
     }
 
-    private KmsMasterKey(final AWSKMSClient kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
+    private KmsMasterKey(final AWSKMS kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
         kms_ = kms;
         id_ = id;
         sourceProvider_ = provider;

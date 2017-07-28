@@ -26,33 +26,24 @@ import org.junit.Test;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
-import com.amazonaws.encryptionsdk.internal.MockKmsProvider;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
-import com.amazonaws.services.kms.MockKMSClient;
+import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 
 public class KeyBlobTest {
     private static CryptoAlgorithm ALGORITHM = CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF;
-    private MockKMSClient mockKMSClient;
-    private String cmkId;
-    private KmsMasterKeyProvider provider_;
-    private KmsMasterKey customerMasterKey_;
     final String providerId_ = "Test Key";
     final String providerInfo_ = "Test Info";
+    private StaticMasterKey masterKeyProvider_;
 
     @Before
     public void init() {
-        mockKMSClient = new MockKMSClient();
-        cmkId = mockKMSClient.createKey().getKeyMetadata().getKeyId();
-        provider_ = new MockKmsProvider(mockKMSClient);
-        customerMasterKey_ = provider_.getMasterKey(cmkId);
+        masterKeyProvider_ = new StaticMasterKey("testmaterial");
     }
 
     private byte[] createKeyBlobBytes() {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC", "Test Encryption Context");
-        final DataKey<KmsMasterKey> mockDataKey_ = customerMasterKey_.generateDataKey(ALGORITHM, encryptionContext);
+        final DataKey<StaticMasterKey> mockDataKey_ = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
         final KeyBlob keyBlob = new KeyBlob(
                 providerId_,
@@ -83,7 +74,7 @@ public class KeyBlobTest {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC", "Test Encryption Context");
 
-        final DataKey<KmsMasterKey> mockDataKey = customerMasterKey_.generateDataKey(ALGORITHM, encryptionContext);
+        final DataKey<StaticMasterKey> mockDataKey = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
         final int providerId_Len = Short.MAX_VALUE + 1;
         final byte[] providerId_Bytes = RandomBytesGenerator.generate(providerId_Len);
@@ -100,7 +91,7 @@ public class KeyBlobTest {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC", "Test Encryption Context");
 
-        final DataKey<KmsMasterKey> mockDataKey = customerMasterKey_.generateDataKey(ALGORITHM, encryptionContext);
+        final DataKey<StaticMasterKey> mockDataKey = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
         final int providerInfo_Len = Short.MAX_VALUE + 1;
         final byte[] providerInfo_ = RandomBytesGenerator.generate(providerInfo_Len);
@@ -166,7 +157,7 @@ public class KeyBlobTest {
     public void checkKeyLen() {
         final Map<String, String> encryptionContext = new HashMap<String, String>(1);
         encryptionContext.put("ENC", "Test Encryption Context");
-        final DataKey<KmsMasterKey> mockDataKey_ = customerMasterKey_.generateDataKey(ALGORITHM, encryptionContext);
+        final DataKey<StaticMasterKey> mockDataKey_ = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
         final KeyBlob keyBlob = new KeyBlob(
                 providerId_,

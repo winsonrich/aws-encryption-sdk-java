@@ -38,8 +38,7 @@ import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
  * 
  * It contains the following fields in order:
  * <ol>
- * <li>
- * version number of the message format</li>
+ * <li>version number of the message format</li>
  * <li>type of the object - e.g., Customer Authenticated Encrypted Data</li>
  * <li>algorithm Id - identifier for the algorithm used</li>
  * <li>Message ID - bytes that uniquely identify the message (encrypted content)
@@ -144,6 +143,9 @@ public class CiphertextHeaders {
         RND.nextBytes(messageId_);
 
         frameLength_ = frameSize;
+
+        // Completed by construction
+        isComplete_ = true;
     }
 
     /**
