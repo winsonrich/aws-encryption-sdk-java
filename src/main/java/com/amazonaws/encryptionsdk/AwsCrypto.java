@@ -137,6 +137,11 @@ public class AwsCrypto {
         if (frameSize < 0) {
             throw new IllegalArgumentException("frameSize must be non-negative");
         }
+        if (frameSize % 16 != 0) {
+            // For compatibility reasons we'll still enforce this restriction for now.
+            // TODO: Investigate whether this can be removed.
+            throw new IllegalArgumentException("frameSize must be a multiple of 16");
+        }
         encryptionFrameSize_ = frameSize;
     }
 

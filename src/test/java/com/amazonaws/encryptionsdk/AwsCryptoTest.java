@@ -640,49 +640,10 @@ public class AwsCryptoTest {
         assertEquals(setFrameSize, getFrameSize);
     }
 
-    @Test
-    public void unalignedFrameSizesAreAccepted() throws IOException {
+    @Test(expected = IllegalArgumentException.class)
+    public void unalignedFrameSizesAreRejected() throws IOException {
         final int frameSize = AwsCrypto.getDefaultCryptoAlgorithm().getBlockSize() - 1;
         encryptionClient_.setEncryptionFrameSize(frameSize);
-
-        // Make sure we can encrypt with unaligned small frame sizes.
-        encryptionClient_.decryptData(masterKeyProvider,
-                                      encryptionClient_.encryptData(masterKeyProvider, new byte[1]).getResult());
-
-        encryptionClient_.setEncryptionFrameSize(frameSize + 2);
-        encryptionClient_.decryptData(masterKeyProvider,
-                                      encryptionClient_.encryptData(masterKeyProvider, new byte[1]).getResult());
-
-        // Make sure really large frame sizes work too.
-        // Note that going all the way up to Integer.MAX_VALUE hits JVM limits.
-        encryptionClient_.setEncryptionFrameSize(Integer.MAX_VALUE - 16);
-        OutputStream nullOutputStream = new OutputStream() {
-            @Override public void write(final int b) throws IOException {
-
-            }
-
-            @Override public void write(final byte[] b) throws IOException {
-
-            }
-
-            @Override public void write(final byte[] b, final int off, final int len) throws IOException {
-
-            }
-        };
-
-        OutputStream decrypter = encryptionClient_.createDecryptingStream(masterKeyProvider, nullOutputStream);
-        OutputStream encrypter = encryptionClient_.createEncryptingStream(masterKeyProvider, nullOutputStream);
-
-        byte[] buf = new byte[1024*1024];
-        long bytesRemaining = Integer.MAX_VALUE + 1;
-
-        while (bytesRemaining > 0) {
-            int toWrite = Math.toIntExact(Math.min(buf.length, bytesRemaining));
-
-            encrypter.write(buf, 0, toWrite);
-        }
-
-        encrypter.close();
     }
 
     @Test(expected = IllegalArgumentException.class)
