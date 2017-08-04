@@ -1,4 +1,5 @@
 com.amazonaws.encryptionsdk
+com.amazonaws.encryptionsdk.caching
 com.amazonaws.encryptionsdk.exception
 com.amazonaws.encryptionsdk.internal
 com.amazonaws.encryptionsdk.jce
