@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except
  * in compliance with the License. A copy of the License is located at
@@ -28,8 +28,8 @@ import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
  * <p>
  * Arguments:
  * <ol>
- * <li>KMS Key Arn
- * <li>String to encrypt
+ * <li>Key ARN: To find the Amazon Resource Name of your KMS customer master key (CMK), 
+ *     see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
  * </ol>
  */
 public class StringExample {
@@ -48,7 +48,7 @@ public class StringExample {
 
         // Encrypt the data
         //
-        // Most encrypted data should have associated encryption context
+        // Most encrypted data should have an associated encryption context
         // to protect integrity. Here, we'll just use a placeholder value.
         //
         // For more information see:
@@ -60,21 +60,24 @@ public class StringExample {
 
         // Decrypt the data
         final CryptoResult<String, KmsMasterKey> decryptResult = crypto.decryptString(prov, ciphertext);
-        // We need to check the encryption context (and ideally key) to ensure that
-        // this was the ciphertext we expected
+        
+		// Before returning the plaintext, verify that the customer master key that
+        // was used in the encryption operation was the one supplied to the master key provider. 
         if (!decryptResult.getMasterKeyIds().get(0).equals(keyArn)) {
             throw new IllegalStateException("Wrong key id!");
         }
 
-        // The SDK may add information to the encryption context, so we check to ensure
-        // that all of our values are present
+        // Also, verify that the encryption context in the result contains the
+        // encryption context supplied to the encryptString method. Because the
+        // SDK can add values to the encryption context, we don't require that 
+        // the entire context matches. 
         for (final Map.Entry<String, String> e : context.entrySet()) {
             if (!e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey()))) {
                 throw new IllegalStateException("Wrong Encryption Context!");
             }
         }
 
-        // Now that we know we have the correct data, we can output it.
+        // Now that we know we have the correct data, we can return it.
         System.out.println("Decrypted: " + decryptResult.getResult());
     }
 }
