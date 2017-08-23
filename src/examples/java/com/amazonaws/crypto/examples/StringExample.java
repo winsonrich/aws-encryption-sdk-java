@@ -28,8 +28,9 @@ import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
  * <p>
  * Arguments:
  * <ol>
- * <li>Key ARN: To find the Amazon Resource Name of your KMS customer master key (CMK), 
- *     see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
+ * <li>Key ARN: For help finding the Amazon Resource Name (ARN) of your KMS customer master 
+ *    key (CMK), see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
+ * <li>String to encrypt
  * </ol>
  */
 public class StringExample {
@@ -49,7 +50,7 @@ public class StringExample {
         // Encrypt the data
         //
         // Most encrypted data should have an associated encryption context
-        // to protect integrity. Here, we'll just use a placeholder value.
+        // to protect integrity. This sample uses placeholder values.
         //
         // For more information see:
         // blogs.aws.amazon.com/security/post/Tx2LZ6WBJJANTNW/How-to-Protect-the-Integrity-of-Your-Encrypted-Data-by-Using-AWS-Key-Management
@@ -61,7 +62,7 @@ public class StringExample {
         // Decrypt the data
         final CryptoResult<String, KmsMasterKey> decryptResult = crypto.decryptString(prov, ciphertext);
         
-		// Before returning the plaintext, verify that the customer master key that
+        // Before returning the plaintext, verify that the customer master key that
         // was used in the encryption operation was the one supplied to the master key provider. 
         if (!decryptResult.getMasterKeyIds().get(0).equals(keyArn)) {
             throw new IllegalStateException("Wrong key id!");
@@ -69,7 +70,7 @@ public class StringExample {
 
         // Also, verify that the encryption context in the result contains the
         // encryption context supplied to the encryptString method. Because the
-        // SDK can add values to the encryption context, we don't require that 
+        // SDK can add values to the encryption context, don't require that 
         // the entire context matches. 
         for (final Map.Entry<String, String> e : context.entrySet()) {
             if (!e.getValue().equals(decryptResult.getEncryptionContext().get(e.getKey()))) {
@@ -77,7 +78,7 @@ public class StringExample {
             }
         }
 
-        // Now that we know we have the correct data, we can return it.
+        // Now we can return the plaintext data
         System.out.println("Decrypted: " + decryptResult.getResult());
     }
 }

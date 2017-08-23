@@ -36,29 +36,33 @@ import com.amazonaws.util.IOUtils;
  * <p>
  * Arguments:
  * <ol>
- * <li>Key ARN: To find the Amazon Resource Name of your KMS customer master key (CMK), 
- *     see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
- * <li>File Name
+ * <li>Key ARN: For help finding the Amazon Resource Name (ARN) of your KMS customer master 
+ *    key (CMK), see 'Viewing Keys' at http://docs.aws.amazon.com/kms/latest/developerguide/viewing-keys.html
+ *
+  * <li>Name of file containing plaintext data to encrypt
  * </ol>
  *
- * AWS Key Management Service (KMS) is highly available. However, some organizations want to decrypt
- * their data offline and independent of KMS. This sample demonstrates one way to do this.
+ * You might use AWS Key Management Service (KMS) for most encryption and decryption operations, but 
+ * still want the option of decrypting your data offline independently of KMS. This sample 
+ * demonstrates one way to do this.
  * 
- * This program generates an "escrowed" RSA key pair. It stores the private key in a secure offline 
- * location, such as an offline HSM, and distributes the public key to their developers. It also 
- * creates a KMS customer master key (CMK). The organization encrypts their data with both the 
- * KMS CMK and the public key, so that either key alone could decrypt it. 
+ * The sample encrypts data under both a KMS customer master key (CMK) and an "escrowed" RSA key pair
+ * so that either key alone can decrypt it. You might commonly use the KMS CMK for decryption. However, 
+ * at any time, you can use the private RSA key to decrypt the ciphertext independent of KMS.
  *
- * The team usually uses the KMS CMK for decryption. However, the organization can, at any time
- * use the private escrowed RSA key to decrypt the ciphertext independent of KMS. 
+ * This sample uses the JCEMasterKey class to generate a RSA public-private key pair
+ * and saves the key pair in memory. In practice, you would store the private key in a secure offline 
+ * location, such as an offline HSM, and distribute the public key to your development team.
+ *
  */
 public class EscrowedEncryptExample {
     private static PublicKey publicEscrowKey;
     private static PrivateKey privateEscrowKey;
 
     public static void main(final String[] args) throws Exception {
-        // In practice, the organization would distribute the public key.
-        // For this demo, we generate a new random key for each operation.
+        // This sample generates a new random key for each operation.
+        // In practice, you would distribute the public key and save the private key in secure
+        // storage.
         generateEscrowKeyPair();
 
         final String kmsArn = args[0];
@@ -71,16 +75,16 @@ public class EscrowedEncryptExample {
     }
 
     private static void standardEncrypt(final String kmsArn, final String fileName) throws Exception {
-        // Standard practice: encrypt with the KMS CMK and the escrowed public key
+        // Encrypt with the KMS CMK and the escrowed public key
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a KMS master key provider
         final KmsMasterKeyProvider kms = new KmsMasterKeyProvider(kmsArn);
         
-		// 3. Instantiate a JCE master key provider
-		// Because the standard user does not have access to the private 
-        // escrow key, they pass in "null" for the private key parameter.
+        // 3. Instantiate a JCE master key provider
+        // Because the user does not have access to the private escrow key,
+        // they pass in "null" for the private key parameter.
         final JceMasterKey escrowPub = JceMasterKey.getInstance(publicEscrowKey, null, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
@@ -100,7 +104,8 @@ public class EscrowedEncryptExample {
     }
 
     private static void standardDecrypt(final String kmsArn, final String fileName) throws Exception {
-        // Standard practice: enncrypt with the KMS CMK and the escrow public key
+        // Decrypt with the KMS CMK and the escrow public key. You can use a combined provider, 
+        // as shown here, or just the KMS master key provider.
 
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
@@ -108,8 +113,8 @@ public class EscrowedEncryptExample {
         // 2. Instantiate a KMS master key provider
         final KmsMasterKeyProvider kms = new KmsMasterKeyProvider(kmsArn);
         
-		// 3. Instantiate a JCE master key provider
-        // Because the standard user does not have access to the private 
+        // 3. Instantiate a JCE master key provider
+        // Because the user does not have access to the private 
         // escrow key, they pass in "null" for the private key parameter.
         final JceMasterKey escrowPub = JceMasterKey.getInstance(publicEscrowKey, null, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
@@ -129,14 +134,14 @@ public class EscrowedEncryptExample {
     }
 
     private static void escrowDecrypt(final String fileName) throws Exception {
-        // The organization can decrypt the stream using only the private escrow key. 
-		// This method does not call KMS.
+        // You can decrypt the stream using only the private key.
+        // This method does not call KMS.
 
         // 1. Instantiate the SDK
         final AwsCrypto crypto = new AwsCrypto();
 
         // 2. Instantiate a JCE master key provider
-        // This method call uses the escrowed private key 
+        // This method call uses the escrowed private key, not null 
         final JceMasterKey escrowPriv = JceMasterKey.getInstance(publicEscrowKey, privateEscrowKey, "Escrow", "Escrow",
                 "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 

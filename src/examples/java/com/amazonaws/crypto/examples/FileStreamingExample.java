@@ -32,13 +32,13 @@ import com.amazonaws.util.IOUtils;
 /**
  * <p>
  * Encrypts and then decrypts a file under a random key.
- * 
+ *
  * <p>
  * Arguments:
  * <ol>
- * <li>fileName
+ * <li>Name of file containing plaintext data to encrypt
  * </ol>
- * 
+ *
  * <p>
  * This program demonstrates using a standard Java {@link SecretKey} object as a {@link MasterKey} to
  * encrypt and decrypt streaming data.
@@ -62,8 +62,8 @@ public class FileStreamingExample {
         // Create an encryption context to identify this ciphertext
         Map<String, String> context = Collections.singletonMap("Example", "FileStreaming");
 
-        // Because the file might be to large to load into memory, we use 
-        // streaming, then encrypt the file stream.
+        // Because the file might be to large to load into memory, we stream the data, instead of 
+        //loading it all at once.
         FileInputStream in = new FileInputStream(srcFile);
         CryptoInputStream<JceMasterKey> encryptingStream = crypto.createEncryptingStream(masterKey, in, context);
 
@@ -89,7 +89,7 @@ public class FileStreamingExample {
 
     /**
      * In practice, this key would be saved in a secure location. 
-	 * For this demo we'll generate a new random key for each operation.
+     * For this demo, we generate a new random key for each operation.
      */
     private static SecretKey retrieveEncryptionKey() {
         SecureRandom rnd = new SecureRandom();
