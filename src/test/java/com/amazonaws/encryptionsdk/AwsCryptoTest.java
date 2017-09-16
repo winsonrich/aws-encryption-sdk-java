@@ -36,12 +36,16 @@ import java.util.Base64;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
+import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
@@ -61,7 +65,7 @@ public class AwsCryptoTest {
         masterKeyProvider = spy(new StaticMasterKey("testmaterial"));
 
         encryptionClient_ = new AwsCrypto();
-        encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_192_GCM_IV12_TAG16_NO_KDF);
+        encryptionClient_.setEncryptionAlgorithm(CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256);
     }
 
     private void doEncryptDecrypt(final CryptoAlgorithm cryptoAlg, final int byteSize, final int frameSize) {
@@ -372,6 +376,28 @@ public class AwsCryptoTest {
                 + "> but was: <" + cipherText.length + ">";
         assertTrue(errMsg, estimatedCiphertextSize - cipherText.length >= 0);
         assertTrue(errMsg, estimatedCiphertextSize - cipherText.length <= 16);
+    }
+
+    @Test
+    public void estimateCiphertextSize_usesCachedKeys() throws Exception {
+        // Make sure estimateCiphertextSize works with cached CMMs
+        CryptoMaterialsManager cmm = spy(new DefaultCryptoMaterialsManager(masterKeyProvider));
+
+        CachingCryptoMaterialsManager cache = CachingCryptoMaterialsManager.newBuilder()
+                .withBackingMaterialsManager(cmm)
+                .withMaxAge(Long.MAX_VALUE, TimeUnit.SECONDS)
+                .withCache(new LocalCryptoMaterialsCache(1))
+                .withMessageUseLimit(9999)
+                .withByteUseLimit(501)
+                .build();
+
+        // These estimates should be cached, and should not consume any bytes from the byte use limit.
+        encryptionClient_.estimateCiphertextSize(cache, 500, new HashMap<>());
+        encryptionClient_.estimateCiphertextSize(cache, 500, new HashMap<>());
+
+        encryptionClient_.encryptData(cache, new byte[500]);
+
+        verify(cmm, times(1)).getMaterialsForEncrypt(any());
     }
 
     @Test
