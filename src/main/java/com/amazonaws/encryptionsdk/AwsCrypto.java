@@ -176,6 +176,10 @@ public class AwsCrypto {
         EncryptionMaterialsRequest request = EncryptionMaterialsRequest.newBuilder()
                                                                        .setContext(encryptionContext)
                                                                        .setRequestedAlgorithm(getEncryptionAlgorithm())
+        // We're not actually encrypting any data, so don't consume any bytes from the cache's limits. We do need to
+        // pass /something/ though, or the cache will be bypassed (as it'll assume this is a streaming encrypt of
+        // unknown size).
+                                                                       .setPlaintextSize(0)
                                                                        .build();
 
         final MessageCryptoHandler cryptoHandler = new EncryptionHandler(
