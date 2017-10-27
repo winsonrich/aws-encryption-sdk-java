@@ -11,50 +11,30 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.encryptionsdk;
+package com.amazonaws.services.kms;
+
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.lang.NullPointerException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.commons.lang3.StringUtils;
-
-import static org.junit.Assert.assertArrayEquals;
-import org.junit.Assume;
 import org.junit.Test;
-import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.encryptionsdk.AwsCrypto;
-import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoResult;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RunWith(Parameterized.class)
 public class XCompatKmsDecryptTest {
@@ -89,7 +69,11 @@ public class XCompatKmsDecryptTest {
             File.separator
         );
         File ciphertextManifestFile = new File(ciphertextManifestName);
-        Assume.assumeTrue(ciphertextManifestFile.exists());
+
+        if (!ciphertextManifestFile.exists()) {
+            return Collections.emptyList();
+        }
+
         ObjectMapper ciphertextManifestMapper = new ObjectMapper();
         Map<String, Object> ciphertextManifest = ciphertextManifestMapper.readValue(
             ciphertextManifestFile,

@@ -22,6 +22,7 @@ import com.amazonaws.encryptionsdk.model.CipherBlockHeadersTest;
 import com.amazonaws.encryptionsdk.model.CipherFrameHeadersTest;
 import com.amazonaws.encryptionsdk.model.KeyBlobTest;
 import com.amazonaws.encryptionsdk.multi.MultipleMasterKeyTest;
+import com.amazonaws.services.kms.KMSProviderBuilderMockTests;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -50,7 +51,8 @@ import com.amazonaws.encryptionsdk.multi.MultipleMasterKeyTest;
         LocalCryptoMaterialsCacheTest.class,
         LocalCryptoMaterialsCacheThreadStormTest.class,
         UtilsTest.class,
-        MultipleMasterKeyTest.class
+        MultipleMasterKeyTest.class,
+        KMSProviderBuilderMockTests.class
 })
 public class AllTestsSuite {
 }
