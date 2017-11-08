@@ -154,45 +154,4 @@ public class KMSProviderBuilderIntegrationTests {
     public void whenDefaultRegionSet_itIsUsedForBareKeyIds() throws Exception {
         // TODO: Need to set up a role to assume as bare key IDs are relative to the caller account
     }
-
-    @Test
-    public void whenDefaultRegionIsNotSet_providerChainDefaultIsUsed() throws Exception {
-        assertDefaultRegionConsistency();
-
-        String oldRegion = System.getProperty("aws.region");
-        Assume.assumeFalse("Can't change env variables from within Java", System.getenv("AWS_REGION") != null);
-
-        try {
-            System.setProperty("aws.region", "eu-central-1");
-            assertEquals("eu-central-1", getInitialDefaultRegion());
-
-            System.setProperty("aws.region", "us-west-2");
-            assertEquals("us-west-2", getInitialDefaultRegion());
-
-        } finally {
-            if (oldRegion != null) {
-                System.setProperty("aws.region", oldRegion);
-            } else {
-                System.clearProperty("aws.region");
-            }
-        }
-    }
-
-    private void assertDefaultRegionConsistency() throws Exception {
-        String initialDefault = getInitialDefaultRegion();
-
-        assertEquals(
-                new DefaultAwsRegionProviderChain().getRegion(),
-                initialDefault
-        );
-    }
-
-    private String getInitialDefaultRegion() throws NoSuchFieldException, IllegalAccessException {
-        KmsMasterKeyProvider.Builder builder = KmsMasterKeyProvider.builder();
-
-        Field f = KmsMasterKeyProvider.Builder.class.getDeclaredField("defaultRegion_");
-        f.setAccessible(true);
-
-        return (String) f.get(builder);
-    }
 }

@@ -71,7 +71,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     }
 
     public static class Builder implements Cloneable {
-        private String defaultRegion_ = new DefaultAwsRegionProviderChain().getRegion();
+        private String defaultRegion_ = null;
         private RegionalClientSupplier regionalClientSupplier_ = null;
         private AWSKMSClientBuilder templateBuilder_ = null;
         private List<String> keyIds_ = new ArrayList<>();
