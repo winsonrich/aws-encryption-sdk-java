@@ -41,8 +41,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import com.amazonaws.encryptionsdk.caching.CachingCryptoMaterialsManager;
 import com.amazonaws.encryptionsdk.caching.LocalCryptoMaterialsCache;
@@ -51,8 +49,8 @@ import com.amazonaws.encryptionsdk.exception.BadCiphertextException;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 import com.amazonaws.encryptionsdk.internal.TestIOUtils;
 import com.amazonaws.encryptionsdk.model.CiphertextType;
-import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.DecryptionMaterials;
+import com.amazonaws.encryptionsdk.model.DecryptionMaterialsRequest;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterials;
 import com.amazonaws.encryptionsdk.model.EncryptionMaterialsRequest;
 

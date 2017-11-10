@@ -11,38 +11,80 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.encryptionsdk.multi;
+package com.amazonaws.services.kms;
 
+import static com.amazonaws.encryptionsdk.CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF;
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.junit.Test;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
-import com.amazonaws.encryptionsdk.internal.MockKmsProvider;
+import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.kms.MockKMSClient;
 
-public class MultipleKMSMasterKeyTest {
+public class LegacyKMSMasterKeyProviderTests {
     private static final String WRAPPING_ALG = "AES/GCM/NoPadding";
     private static final byte[] PLAINTEXT = generate(1024);
+
+    @Test
+    public void testExplicitCredentials() throws Exception {
+        AWSCredentials creds = new AWSCredentials() {
+            @Override public String getAWSAccessKeyId() {
+                throw new UsedExplicitCredentials();
+            }
+
+            @Override public String getAWSSecretKey() {
+                throw new UsedExplicitCredentials();
+            }
+        };
+
+        MasterKeyProvider<KmsMasterKey> mkp = new KmsMasterKeyProvider(creds, "arn:aws:kms:us-east-1:012345678901);key/foo-bar");
+        assertExplicitCredentialsUsed(mkp);
+
+        mkp = new KmsMasterKeyProvider(new AWSStaticCredentialsProvider(creds), "arn:aws:kms:us-east-1:012345678901);key/foo-bar");
+        assertExplicitCredentialsUsed(mkp);
+    }
+
+    @Test
+    public void testNoKeyMKP() throws Exception {
+        AWSCredentials creds = new ThrowingCredentials();
+
+        MasterKeyRequest mkr = MasterKeyRequest.newBuilder()
+                                               .setEncryptionContext(Collections.emptyMap())
+                                               .setStreaming(true)
+                                               .build();
+
+        MasterKeyProvider<KmsMasterKey> mkp = new KmsMasterKeyProvider(creds);
+        assertTrue(mkp.getMasterKeysForEncryption(mkr).isEmpty());
+
+        mkp = new KmsMasterKeyProvider(new AWSStaticCredentialsProvider(creds));
+        assertTrue(mkp.getMasterKeysForEncryption(mkr).isEmpty());
+    }
 
     @Test
     public void testMultipleKmsKeys() {
         final MockKMSClient kms = new MockKMSClient();
         final String arn1 = kms.createKey().getKeyMetadata().getArn();
         final String arn2 = kms.createKey().getKeyMetadata().getArn();
-        MasterKeyProvider<KmsMasterKey> prov = new MockKmsProvider(kms, arn1, arn2);
+        MasterKeyProvider<KmsMasterKey> prov = legacyConstruct(kms, arn1, arn2);
         KmsMasterKey mk1 = prov.getMasterKey(arn1);
 
         AwsCrypto crypto = new AwsCrypto();
@@ -60,7 +102,7 @@ public class MultipleKMSMasterKeyTest {
         final MockKMSClient kms = new MockKMSClient();
         final String arn1 = kms.createKey().getKeyMetadata().getArn();
         final String arn2 = kms.createKey().getKeyMetadata().getArn();
-        MasterKeyProvider<KmsMasterKey> prov = new MockKmsProvider(kms, arn1, arn2);
+        MasterKeyProvider<KmsMasterKey> prov = legacyConstruct(kms, arn1, arn2);
         KmsMasterKey mk1 = prov.getMasterKey(arn1);
         KmsMasterKey mk2 = prov.getMasterKey(arn2);
 
@@ -96,15 +138,13 @@ public class MultipleKMSMasterKeyTest {
         eu_west_1.setRegion(Region.getRegion(Regions.EU_WEST_1));
         final String arn1 = us_east_1.createKey().getKeyMetadata().getArn();
         final String arn2 = eu_west_1.createKey().getKeyMetadata().getArn();
-        KmsMasterKeyProvider provE = new MockKmsProvider(us_east_1);
-        provE.setRegion(Region.getRegion(Regions.US_EAST_1));
-        KmsMasterKeyProvider provW = new MockKmsProvider(eu_west_1);
-        provW.setRegion(Region.getRegion(Regions.EU_WEST_1));
+        KmsMasterKeyProvider provE = legacyConstruct(us_east_1, Region.getRegion(Regions.US_EAST_1));
+        KmsMasterKeyProvider provW = legacyConstruct(eu_west_1, Region.getRegion(Regions.EU_WEST_1));
         KmsMasterKey mk1 = provE.getMasterKey(arn1);
         KmsMasterKey mk2 = provW.getMasterKey(arn2);
 
         final MasterKeyProvider<KmsMasterKey> mkp = MultipleProviderFactory.buildMultiProvider(KmsMasterKey.class,
-                mk1, mk2);
+                                                                                               mk1, mk2);
         AwsCrypto crypto = new AwsCrypto();
         CryptoResult<byte[], KmsMasterKey> ct = crypto.encryptData(mkp, PLAINTEXT);
         assertEquals(2, ct.getMasterKeyIds().size());
@@ -131,13 +171,14 @@ public class MultipleKMSMasterKeyTest {
         assertEquals(mk2, result.getMasterKeys().get(0));
     }
 
+
     @Test
     public void testMixedKeys() {
         final SecretKeySpec k1 = new SecretKeySpec(generate(32), "AES");
         final JceMasterKey mk1 = JceMasterKey.getInstance(k1, "jce", "1", WRAPPING_ALG);
         final MockKMSClient kms = new MockKMSClient();
         final String arn2 = kms.createKey().getKeyMetadata().getArn();
-        MasterKeyProvider<KmsMasterKey> prov = new MockKmsProvider(kms);
+        MasterKeyProvider<KmsMasterKey> prov = legacyConstruct(kms);
         KmsMasterKey mk2 = prov.getMasterKey(arn2);
         final MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mk1, mk2);
 
@@ -159,7 +200,7 @@ public class MultipleKMSMasterKeyTest {
         final JceMasterKey mk1 = JceMasterKey.getInstance(k1, "jce", "1", WRAPPING_ALG);
         final MockKMSClient kms = new MockKMSClient();
         final String arn2 = kms.createKey().getKeyMetadata().getArn();
-        MasterKeyProvider<KmsMasterKey> prov = new MockKmsProvider(kms);
+        MasterKeyProvider<KmsMasterKey> prov = legacyConstruct(kms);
         KmsMasterKey mk2 = prov.getMasterKey(arn2);
         final MasterKeyProvider<?> mkp = MultipleProviderFactory.buildMultiProvider(mk1, mk2);
 
@@ -180,10 +221,45 @@ public class MultipleKMSMasterKeyTest {
         assertEquals(mk2, result.getMasterKeys().get(0));
     }
 
+    private KmsMasterKeyProvider legacyConstruct(final AWSKMS client, String... keyIds) {
+        return legacyConstruct(client, Region.getRegion(Regions.DEFAULT_REGION), keyIds);
+    }
+
+    private KmsMasterKeyProvider legacyConstruct(final AWSKMS client, final Region region, String... keyIds) {
+        return new KmsMasterKeyProvider(client, region, Arrays.asList(keyIds));
+    }
+
     private void assertMultiReturnsKeys(MasterKeyProvider<?> mkp, MasterKey<?>... mks) {
         for (MasterKey<?> mk : mks) {
             assertEquals(mk, mkp.getMasterKey(mk.getKeyId()));
             assertEquals(mk, mkp.getMasterKey(mk.getProviderId(), mk.getKeyId()));
+        }
+    }
+
+    private void assertExplicitCredentialsUsed(final MasterKeyProvider<KmsMasterKey> mkp) {
+        try {
+            MasterKeyRequest mkr = MasterKeyRequest.newBuilder()
+                                                   .setEncryptionContext(Collections.emptyMap())
+                                                   .setStreaming(true)
+                                                   .build();
+            mkp.getMasterKeysForEncryption(mkr)
+               .forEach(mk -> mk.generateDataKey(ALG_AES_128_GCM_IV12_TAG16_NO_KDF, Collections.emptyMap()));
+
+            fail("Expected exception");
+        } catch (UsedExplicitCredentials e) {
+            // ok
+        }
+    }
+
+    private static class UsedExplicitCredentials extends RuntimeException {}
+
+    private static class ThrowingCredentials implements AWSCredentials {
+        @Override public String getAWSAccessKeyId() {
+            throw new UsedExplicitCredentials();
+        }
+
+        @Override public String getAWSSecretKey() {
+            throw new UsedExplicitCredentials();
         }
     }
 }

@@ -13,15 +13,14 @@
 
 package com.amazonaws.encryptionsdk.kms;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
@@ -52,10 +51,20 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     private final String id_;
     private final List<String> grantTokens_ = new ArrayList<>();
 
+    /**
+     *
+     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
+     */
+    @Deprecated
     public static KmsMasterKey getInstance(final AWSCredentials creds, final String keyId) {
         return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
     }
 
+    /**
+     *
+     * @deprecated Use a {@link KmsMasterKeyProvider} to obtain {@link KmsMasterKey}s.
+     */
+    @Deprecated
     public static KmsMasterKey getInstance(final AWSCredentialsProvider creds, final String keyId) {
         return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
     }
@@ -63,12 +72,6 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     static KmsMasterKey getInstance(final AWSKMS kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
         return new KmsMasterKey(kms, id, provider);
-    }
-
-    private KmsMasterKey(final AWSKMS kms, final String id) {
-        kms_ = kms;
-        id_ = id;
-        sourceProvider_ = this;
     }
 
     private KmsMasterKey(final AWSKMS kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {

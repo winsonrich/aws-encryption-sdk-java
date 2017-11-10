@@ -29,7 +29,60 @@ import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ResponseMetadata;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.kms.model.*;
+import com.amazonaws.services.kms.model.CreateAliasRequest;
+import com.amazonaws.services.kms.model.CreateAliasResult;
+import com.amazonaws.services.kms.model.CreateGrantRequest;
+import com.amazonaws.services.kms.model.CreateGrantResult;
+import com.amazonaws.services.kms.model.CreateKeyRequest;
+import com.amazonaws.services.kms.model.CreateKeyResult;
+import com.amazonaws.services.kms.model.DecryptRequest;
+import com.amazonaws.services.kms.model.DecryptResult;
+import com.amazonaws.services.kms.model.DeleteAliasRequest;
+import com.amazonaws.services.kms.model.DeleteAliasResult;
+import com.amazonaws.services.kms.model.DescribeKeyRequest;
+import com.amazonaws.services.kms.model.DescribeKeyResult;
+import com.amazonaws.services.kms.model.DisableKeyRequest;
+import com.amazonaws.services.kms.model.DisableKeyResult;
+import com.amazonaws.services.kms.model.DisableKeyRotationRequest;
+import com.amazonaws.services.kms.model.DisableKeyRotationResult;
+import com.amazonaws.services.kms.model.EnableKeyRequest;
+import com.amazonaws.services.kms.model.EnableKeyResult;
+import com.amazonaws.services.kms.model.EnableKeyRotationRequest;
+import com.amazonaws.services.kms.model.EnableKeyRotationResult;
+import com.amazonaws.services.kms.model.EncryptRequest;
+import com.amazonaws.services.kms.model.EncryptResult;
+import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
+import com.amazonaws.services.kms.model.GenerateDataKeyResult;
+import com.amazonaws.services.kms.model.GenerateDataKeyWithoutPlaintextRequest;
+import com.amazonaws.services.kms.model.GenerateDataKeyWithoutPlaintextResult;
+import com.amazonaws.services.kms.model.GenerateRandomRequest;
+import com.amazonaws.services.kms.model.GenerateRandomResult;
+import com.amazonaws.services.kms.model.GetKeyPolicyRequest;
+import com.amazonaws.services.kms.model.GetKeyPolicyResult;
+import com.amazonaws.services.kms.model.GetKeyRotationStatusRequest;
+import com.amazonaws.services.kms.model.GetKeyRotationStatusResult;
+import com.amazonaws.services.kms.model.InvalidCiphertextException;
+import com.amazonaws.services.kms.model.KeyMetadata;
+import com.amazonaws.services.kms.model.KeyUsageType;
+import com.amazonaws.services.kms.model.ListAliasesRequest;
+import com.amazonaws.services.kms.model.ListAliasesResult;
+import com.amazonaws.services.kms.model.ListGrantsRequest;
+import com.amazonaws.services.kms.model.ListGrantsResult;
+import com.amazonaws.services.kms.model.ListKeyPoliciesRequest;
+import com.amazonaws.services.kms.model.ListKeyPoliciesResult;
+import com.amazonaws.services.kms.model.ListKeysRequest;
+import com.amazonaws.services.kms.model.ListKeysResult;
+import com.amazonaws.services.kms.model.NotFoundException;
+import com.amazonaws.services.kms.model.PutKeyPolicyRequest;
+import com.amazonaws.services.kms.model.PutKeyPolicyResult;
+import com.amazonaws.services.kms.model.ReEncryptRequest;
+import com.amazonaws.services.kms.model.ReEncryptResult;
+import com.amazonaws.services.kms.model.RetireGrantRequest;
+import com.amazonaws.services.kms.model.RetireGrantResult;
+import com.amazonaws.services.kms.model.RevokeGrantRequest;
+import com.amazonaws.services.kms.model.RevokeGrantResult;
+import com.amazonaws.services.kms.model.UpdateKeyDescriptionRequest;
+import com.amazonaws.services.kms.model.UpdateKeyDescriptionResult;
 
 public class MockKMSClient extends AWSKMSClient {
     private static final SecureRandom rnd = new SecureRandom();
@@ -121,6 +174,12 @@ public class MockKMSClient extends AWSKMSClient {
 
     @Override
     public EncryptResult encrypt(EncryptRequest req) throws AmazonServiceException, AmazonClientException {
+        // We internally delegate to encrypt, so as to avoid mockito detecting extra calls to encrypt when spying on the
+        // MockKMSClient, we put the real logic into a separate function.
+        return encrypt0(req);
+    }
+
+    private EncryptResult encrypt0(EncryptRequest req) throws AmazonServiceException, AmazonClientException {
         final byte[] cipherText = new byte[512];
         rnd.nextBytes(cipherText);
         DecryptResult dec = new DecryptResult();
@@ -150,7 +209,7 @@ public class MockKMSClient extends AWSKMSClient {
         }
         rnd.nextBytes(pt);
         ByteBuffer ptBuff = ByteBuffer.wrap(pt);
-        EncryptResult encryptResult = encrypt(new EncryptRequest().withKeyId(req.getKeyId()).withPlaintext(ptBuff)
+        EncryptResult encryptResult = encrypt0(new EncryptRequest().withKeyId(req.getKeyId()).withPlaintext(ptBuff)
                 .withEncryptionContext(req.getEncryptionContext()));
         String arn = retrieveArn(req.getKeyId());
         return new GenerateDataKeyResult().withKeyId(arn).withCiphertextBlob(encryptResult.getCiphertextBlob())
