@@ -78,7 +78,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
 
         public Builder clone() {
             try {
-                Builder cloned = (Builder)super.clone();
+                Builder cloned = (Builder) super.clone();
 
                 if (templateBuilder_ != null) {
                     cloned.templateBuilder_ = cloneClientBuilder(templateBuilder_);
