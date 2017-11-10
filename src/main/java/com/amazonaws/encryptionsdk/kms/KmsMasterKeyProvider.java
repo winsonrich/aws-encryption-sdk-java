@@ -13,11 +13,12 @@
 
 package com.amazonaws.encryptionsdk.kms;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +40,6 @@ import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.NoSuchMasterKeyException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.handlers.RequestHandler2;
-import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kms.AWSKMS;
@@ -70,12 +70,27 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         AWSKMS getClient(String regionName);
     }
 
-    public static class Builder implements Cloneable {
+    public static final class Builder implements Cloneable {
         private String defaultRegion_ = null;
         private RegionalClientSupplier regionalClientSupplier_ = null;
         private AWSKMSClientBuilder templateBuilder_ = null;
         private List<String> keyIds_ = new ArrayList<>();
-        private List<String> grantTokens_ = new ArrayList<>();
+
+        public Builder clone() {
+            try {
+                Builder cloned = (Builder)super.clone();
+
+                if (templateBuilder_ != null) {
+                    cloned.templateBuilder_ = cloneClientBuilder(templateBuilder_);
+                }
+
+                cloned.keyIds_ = new ArrayList<>(keyIds_);
+
+                return cloned;
+            } catch (CloneNotSupportedException e) {
+                throw new Error("Impossible: CloneNotSupportedException", e);
+            }
+        }
 
         /**
          * Adds key ID(s) to the list of keys to use on encryption.
@@ -84,7 +99,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
          * @return
          */
         public Builder withKeysForEncryption(String... keyIds) {
-            keyIds_.addAll(Arrays.asList(keyIds));
+            keyIds_.addAll(asList(keyIds));
             return this;
         }
 
@@ -96,17 +111,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
          */
         public Builder withKeysForEncryption(List<String> keyIds) {
             keyIds_.addAll(keyIds);
-            return this;
-        }
-
-        /**
-         * Adds grant tokens to the provider under construction.
-         *
-         * @param tokens
-         * @return
-         */
-        public Builder withGrantTokens(List<String> tokens) {
-            this.grantTokens_.addAll(tokens);
             return this;
         }
 
@@ -230,9 +234,19 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
          * @return
          */
         public KmsMasterKeyProvider build() {
+            // If we don't have a default region, we need to check that all key IDs will be usable
+            if (defaultRegion_ == null) {
+                for (String keyId : keyIds_) {
+                    if (parseRegionfromKeyArn(keyId) == null) {
+                        throw new AwsCryptoException("Can't use non-ARN key identifiers or aliases when " +
+                                                             "no default region is set");
+                    }
+                }
+            }
+
             RegionalClientSupplier supplier = clientFactory();
 
-            return new KmsMasterKeyProvider(supplier, defaultRegion_, keyIds_, grantTokens_, false);
+            return new KmsMasterKeyProvider(supplier, defaultRegion_, keyIds_, emptyList(), false);
         }
 
         private RegionalClientSupplier clientFactory() {
@@ -283,17 +297,12 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         this.defaultRegion_ = defaultRegion;
         this.keyIds_ = Collections.unmodifiableList(new ArrayList<>(keyIds));
 
-        if (grantTokens != null) {
-            this.grantTokens_ = Collections.unmodifiableList(new ArrayList<>(grantTokens));
-        } else {
-            // Legacy support for the mutating API
-            this.grantTokens_ = new ArrayList<>();
-        }
+        this.grantTokens_ = grantTokens;
     }
 
     // Helper ctor for legacy ctors
     private KmsMasterKeyProvider(RegionalClientSupplier supplier, String defaultRegion, List<String> keyIds) {
-        this(supplier, defaultRegion, keyIds, null, true);
+        this(supplier, defaultRegion, keyIds, new ArrayList<>(), true);
     }
 
     private static RegionalClientSupplier defaultProvider() {
@@ -309,7 +318,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
      */
     @Deprecated
     public KmsMasterKeyProvider() {
-        this(defaultProvider(), Regions.DEFAULT_REGION.getName(), Collections.emptyList());
+        this(defaultProvider(), Regions.DEFAULT_REGION.getName(), emptyList());
     }
 
 
@@ -439,7 +448,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             throw new UnsupportedProviderException();
         }
 
-        String regionName = identifyKeyRegion(keyId);
+        String regionName = parseRegionfromKeyArn(keyId);
         AWSKMS kms = regionalClientSupplier_.getClient(regionName);
         if (kms == null) {
             throw new AwsCryptoException("Can't use keys from region " + regionName);
@@ -456,7 +465,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     @Override
     public List<KmsMasterKey> getMasterKeysForEncryption(final MasterKeyRequest request) {
         if (keyIds_ == null) {
-            return Collections.emptyList();
+            return emptyList();
         }
         List<KmsMasterKey> result = new ArrayList<>(keyIds_.size());
         for (String id : keyIds_) {
@@ -485,7 +494,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     }
 
     /**
-     * @deprecated This method is inherently not thread safe. Use {@link Builder#setGrantTokens(List)} instead.
+     * @deprecated This method is inherently not thread safe. Use {@link KmsMasterKey#setGrantTokens(List)} instead.
      * {@link KmsMasterKeyProvider}s constructed using the builder will throw an exception on attempts to modify the
      * list of grant tokens.
      */
@@ -496,9 +505,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             this.grantTokens_.clear();
             this.grantTokens_.addAll(grantTokens);
         } catch (UnsupportedOperationException e) {
-            throw new IllegalStateException(
-                    "Changing grant tokens are not supported when constructing using the new builder API. Set them " +
-                            "at construction time instead.");
+            throw grantTokenError();
         }
     }
 
@@ -508,9 +515,9 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     }
 
     /**
-     * @deprecated This method is inherently not thread safe. Use {@link Builder#setGrantTokens(List)} instead.
-     * {@link KmsMasterKeyProvider}s constructed using the builder will throw an exception on attempts to modify the
-     * list of grant tokens.
+     * @deprecated This method is inherently not thread safe. Use {@link #withGrantTokens(List)} or
+     * {@link KmsMasterKey#setGrantTokens(List)} instead. {@link KmsMasterKeyProvider}s constructed using the builder
+     * will throw an exception on attempts to modify the list of grant tokens.
      */
     @Deprecated
     @Override
@@ -518,10 +525,36 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         try {
             grantTokens_.add(grantToken);
         } catch (UnsupportedOperationException e) {
-            throw new IllegalStateException(
-                    "Changing grant tokens are not supported when constructing using the new builder API. Set them " +
-                            "at construction time instead.");
+            throw grantTokenError();
         }
+    }
+
+    private RuntimeException grantTokenError() {
+        return new IllegalStateException("This master key provider is immutable. Use withGrantTokens instead.");
+    }
+
+    /**
+     * Returns a new {@link KmsMasterKeyProvider} that is configured identically to this one, except with the given list
+     * of grant tokens. The grant token list in the returned provider is immutable (but can be further overridden by
+     * invoking withGrantTokens again).
+     * @param grantTokens
+     * @return
+     */
+    public KmsMasterKeyProvider withGrantTokens(List<String> grantTokens) {
+        grantTokens = Collections.unmodifiableList(new ArrayList<>(grantTokens));
+
+        return new KmsMasterKeyProvider(regionalClientSupplier_, defaultRegion_, keyIds_, grantTokens, false);
+    }
+
+    /**
+     * Returns a new {@link KmsMasterKeyProvider} that is configured identically to this one, except with the given list
+     * of grant tokens. The grant token list in the returned provider is immutable (but can be further overridden by
+     * invoking withGrantTokens again).
+     * @param grantTokens
+     * @return
+     */
+    public KmsMasterKeyProvider withGrantTokens(String... grantTokens) {
+        return withGrantTokens(asList(grantTokens));
     }
 
     private static Region getStartingRegion(final String keyArn) {
@@ -535,20 +568,6 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         }
 
         return Region.getRegion(Regions.DEFAULT_REGION);
-    }
-
-    private String identifyKeyRegion(final String keyArn) {
-        String region = parseRegionfromKeyArn(keyArn);
-
-        if (region != null) {
-            return region;
-        }
-
-        if (defaultRegion_ == null) {
-            throw new AwsCryptoException("Can't use non-ARN key identifiers or aliases when no default region is set");
-        }
-
-        return defaultRegion_;
     }
 
     private static String parseRegionfromKeyArn(final String keyArn) {
