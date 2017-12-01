@@ -145,9 +145,7 @@ public class AwsCryptoTest {
     @Test
     public void encryptDecrypt() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-            final int blockSize = cryptoAlg.getBlockSize();
-            final int[] frameSizeToTest = { 0, blockSize, blockSize * 2, blockSize * 10,
-                    AwsCrypto.getDefaultFrameSize() };
+            final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
                 final int frameSize = frameSizeToTest[i];
@@ -175,9 +173,7 @@ public class AwsCryptoTest {
             if (cryptoAlg.getTrailingSignatureAlgo() == null) {
                 continue;
             }
-            final int blockSize = cryptoAlg.getBlockSize();
-            final int[] frameSizeToTest = { 0, blockSize, blockSize * 2, blockSize * 10,
-                    AwsCrypto.getDefaultFrameSize() };
+            final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
                 final int frameSize = frameSizeToTest[i];
@@ -202,9 +198,7 @@ public class AwsCryptoTest {
     @Test
     public void encryptDecryptWithParsedCiphertext() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-            final int blockSize = cryptoAlg.getBlockSize();
-            final int[] frameSizeToTest = { 0, blockSize, blockSize * 2, blockSize * 10,
-                    AwsCrypto.getDefaultFrameSize() };
+            final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
                 final int frameSize = frameSizeToTest[i];
@@ -336,9 +330,7 @@ public class AwsCryptoTest {
     @Test
     public void estimateCiphertextSize() {
         for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-            final int blockSize = cryptoAlg.getBlockSize();
-            final int[] frameSizeToTest = { 0, blockSize, blockSize * 2, blockSize * 10,
-                    AwsCrypto.getDefaultFrameSize() };
+            final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
             for (int i = 0; i < frameSizeToTest.length; i++) {
                 final int frameSize = frameSizeToTest[i];
@@ -664,10 +656,12 @@ public class AwsCryptoTest {
         assertEquals(setFrameSize, getFrameSize);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void unalignedFrameSizesAreRejected() throws IOException {
+
+    public void unalignedFrameSizesAreAccepted() throws IOException {
         final int frameSize = AwsCrypto.getDefaultCryptoAlgorithm().getBlockSize() - 1;
         encryptionClient_.setEncryptionFrameSize(frameSize);
+
+        assertEquals(frameSize, encryptionClient_.getEncryptionFrameSize());
     }
 
     @Test(expected = IllegalArgumentException.class)
