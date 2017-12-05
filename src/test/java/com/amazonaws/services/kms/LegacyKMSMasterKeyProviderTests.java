@@ -56,10 +56,10 @@ public class LegacyKMSMasterKeyProviderTests {
             }
         };
 
-        MasterKeyProvider<KmsMasterKey> mkp = new KmsMasterKeyProvider(creds, "arn:aws:kms:us-east-1:012345678901);key/foo-bar");
+        MasterKeyProvider<KmsMasterKey> mkp = new KmsMasterKeyProvider(creds, "arn:aws:kms:us-east-1:012345678901:key/foo-bar");
         assertExplicitCredentialsUsed(mkp);
 
-        mkp = new KmsMasterKeyProvider(new AWSStaticCredentialsProvider(creds), "arn:aws:kms:us-east-1:012345678901);key/foo-bar");
+        mkp = new KmsMasterKeyProvider(new AWSStaticCredentialsProvider(creds), "arn:aws:kms:us-east-1:012345678901:key/foo-bar");
         assertExplicitCredentialsUsed(mkp);
     }
 
