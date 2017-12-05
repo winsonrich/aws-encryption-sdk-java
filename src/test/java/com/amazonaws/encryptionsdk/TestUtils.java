@@ -159,4 +159,19 @@ public class TestUtils {
     public static ByteArrayInputStream insecureRandomStream(int length) {
         return new ByteArrayInputStream(ensureRandomCached(length), 0, length);
     }
+
+    public static int[] getFrameSizesToTest(final CryptoAlgorithm cryptoAlg) {
+      final int blockSize = cryptoAlg.getBlockSize();
+      final int[] frameSizeToTest = {
+          0,
+          blockSize - 1,
+          blockSize,
+          blockSize + 1,
+          blockSize * 2,
+          blockSize * 10,
+          blockSize * 10 + 1,
+          AwsCrypto.getDefaultFrameSize()
+      };
+      return frameSizeToTest;
+  }
 }

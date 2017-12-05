@@ -158,11 +158,7 @@ public class CryptoInputStreamTest {
             boolean firstAlgorithm = true;
 
             for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-                final int blockSize = cryptoAlg.getBlockSize();
-                final int[] frameSizeToTest = {
-                        0, blockSize, blockSize * 2, blockSize * 10,
-                        AwsCrypto.getDefaultFrameSize()
-                };
+                final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
                 // Our bytesToTest and readLenVals arrays tend to have the bigger numbers towards the end - we'll chop off
                 // the last few as they take the longest and don't really add that much more coverage.

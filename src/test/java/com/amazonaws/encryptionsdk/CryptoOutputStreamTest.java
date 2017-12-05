@@ -155,9 +155,7 @@ public class CryptoOutputStreamTest {
             ArrayList<Object[]> cases = new ArrayList<>();
 
             for (final CryptoAlgorithm cryptoAlg : EnumSet.allOf(CryptoAlgorithm.class)) {
-                final int blockSize = cryptoAlg.getBlockSize();
-                final int[] frameSizeToTest = { 0, blockSize, blockSize * 2, blockSize * 10,
-                                                AwsCrypto.getDefaultFrameSize() };
+              final int[] frameSizeToTest = TestUtils.getFrameSizesToTest(cryptoAlg);
 
                 // iterate over frame size to test
                 for (int i = 0; i < frameSizeToTest.length; i++) {
