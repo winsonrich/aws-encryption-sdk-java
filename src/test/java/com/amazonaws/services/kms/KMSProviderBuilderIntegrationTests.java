@@ -13,9 +13,12 @@ import static org.mockito.Mockito.verify;
 import java.util.Arrays;
 
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import com.amazonaws.AbortedException;
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Request;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -24,6 +27,7 @@ import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
+import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.handlers.RequestHandler2;
 import com.amazonaws.http.exception.HttpRequestTimeoutException;
@@ -195,6 +199,34 @@ public class KMSProviderBuilderIntegrationTests {
                                                                        "bad-region")
                                                        )
                             );
+    }
+
+    @Test
+    public void whenUserAgentsOverridden_originalUAsPreserved() throws Exception {
+        RequestHandler2 handler = spy(new RequestHandler2() {});
+
+        KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
+                                                       .withClientBuilder(
+                                                               AWSKMSClientBuilder.standard().withRequestHandlers(handler)
+                                                               .withClientConfiguration(
+                                                                       new ClientConfiguration()
+                                                                           .withUserAgentPrefix("TEST-UA-PREFIX")
+                                                                           .withUserAgentSuffix("TEST-UA-SUFFIX")
+                                                               )
+                                                       )
+                                                       .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0])
+                                                       .clone().build();
+
+        new AwsCrypto().encryptData(mkp, new byte[0]);
+
+        ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
+        verify(handler, atLeastOnce()).beforeRequest(captor.capture());
+
+        String ua = (String)captor.getValue().getHeaders().get("User-Agent");
+
+        assertTrue(ua.contains("TEST-UA-PREFIX"));
+        assertTrue(ua.contains("TEST-UA-SUFFIX"));
+        assertTrue(ua.contains(VersionInfo.USER_AGENT));
     }
 
     @Test

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.encryptionsdk.AwsCrypto;
@@ -33,6 +34,7 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
+import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.DecryptResult;
@@ -50,6 +52,12 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
     private final List<String> grantTokens_ = new ArrayList<>();
+
+    private <T extends AmazonWebServiceRequest> T updateUserAgent(T request) {
+        request.getRequestClientOptions().appendUserAgent(VersionInfo.USER_AGENT);
+
+        return request;
+    }
 
     /**
      *
@@ -93,13 +101,13 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     @Override
     public DataKey<KmsMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {
-        final GenerateDataKeyResult gdkResult = kms_.generateDataKey(
+        final GenerateDataKeyResult gdkResult = kms_.generateDataKey(updateUserAgent(
                 new GenerateDataKeyRequest()
                         .withKeyId(getKeyId())
                         .withNumberOfBytes(algorithm.getDataKeyLength())
                         .withEncryptionContext(encryptionContext)
                         .withGrantTokens(grantTokens_)
-                );
+        ));
         final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
         gdkResult.getPlaintext().get(rawKey);
         if (gdkResult.getPlaintext().remaining() > 0) {
@@ -137,12 +145,12 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
             throw new IllegalArgumentException("Only RAW encoded keys are supported");
         }
         try {
-            final EncryptResult encryptResult = kms_.encrypt(
+            final EncryptResult encryptResult = kms_.encrypt(updateUserAgent(
                     new EncryptRequest()
                             .withKeyId(id_)
                             .withPlaintext(ByteBuffer.wrap(key.getEncoded()))
                             .withEncryptionContext(encryptionContext)
-                            .withGrantTokens(grantTokens_));
+                            .withGrantTokens(grantTokens_)));
             final byte[] edk = new byte[encryptResult.getCiphertextBlob().remaining()];
             encryptResult.getCiphertextBlob().get(edk);
             return new DataKey<>(dataKey.getKey(), edk, encryptResult.getKeyId().getBytes(StandardCharsets.UTF_8), this);
@@ -159,11 +167,11 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
-                final DecryptResult decryptResult = kms_.decrypt(
+                final DecryptResult decryptResult = kms_.decrypt(updateUserAgent(
                         new DecryptRequest()
                                 .withCiphertextBlob(ByteBuffer.wrap(edk.getEncryptedDataKey()))
                                 .withEncryptionContext(encryptionContext)
-                                .withGrantTokens(grantTokens_));
+                                .withGrantTokens(grantTokens_)));
                 if (decryptResult.getKeyId().equals(id_)) {
                     final byte[] rawKey = new byte[algorithm.getDataKeyLength()];
                     decryptResult.getPlaintext().get(rawKey);

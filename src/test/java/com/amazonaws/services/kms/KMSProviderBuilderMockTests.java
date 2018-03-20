@@ -23,8 +23,11 @@ import java.util.List;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.amazonaws.AmazonWebServiceRequest;
+import com.amazonaws.RequestClientOptions;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
+import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider.RegionalClientSupplier;
@@ -156,5 +159,38 @@ public class KMSProviderBuilderMockTests {
         assertTrue(grantTokens.contains("c"));
         assertFalse(grantTokens.contains("x"));
         assertFalse(grantTokens.contains("z"));
+    }
+
+    @Test
+    public void testUserAgentPassthrough() throws Exception {
+        MockKMSClient client = spy(new MockKMSClient());
+
+        String key1 = client.createKey().getKeyMetadata().getArn();
+        String key2 = client.createKey().getKeyMetadata().getArn();
+
+        KmsMasterKeyProvider mkp = KmsMasterKeyProvider.builder()
+                                                       .withKeysForEncryption(key1, key2)
+                                                       .withCustomClientFactory(ignored -> client)
+                                                       .build();
+
+        new AwsCrypto().decryptData(mkp, new AwsCrypto().encryptData(mkp, new byte[0]).getResult());
+
+        ArgumentCaptor<GenerateDataKeyRequest> gdkr = ArgumentCaptor.forClass(GenerateDataKeyRequest.class);
+        verify(client, times(1)).generateDataKey(gdkr.capture());
+        assertTrue(getUA(gdkr.getValue()).contains(VersionInfo.USER_AGENT));
+
+        ArgumentCaptor<EncryptRequest> encr = ArgumentCaptor.forClass(EncryptRequest.class);
+        verify(client, times(1)).encrypt(encr.capture());
+        assertTrue(getUA(encr.getValue()).contains(VersionInfo.USER_AGENT));
+
+        ArgumentCaptor<DecryptRequest> decr = ArgumentCaptor.forClass(DecryptRequest.class);
+        verify(client, times(1)).decrypt(decr.capture());
+        assertTrue(getUA(decr.getValue()).contains(VersionInfo.USER_AGENT));
+    }
+
+    private String getUA(AmazonWebServiceRequest request) {
+        // Note: This test may break in future versions of the AWS SDK, as Marker is documented as being for internal
+        // use only.
+        return request.getRequestClientOptions().getClientMarker(RequestClientOptions.Marker.USER_AGENT);
     }
 }
