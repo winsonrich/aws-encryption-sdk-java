@@ -43,7 +43,11 @@ public class FrameEncryptionHandlerVeryLongTest {
             expectedNonce.putInt(0);
             expectedNonce.putLong(i);
 
-            frameEncryptionHandler_.processBytes(buf, 0, 1, buf, 0);
+            if (i != Constants.MAX_FRAME_NUMBER) {
+                frameEncryptionHandler_.processBytes(buf, 0, 1, buf, 0);
+            } else {
+                frameEncryptionHandler_.doFinal(buf, 0);
+            }
 
             CipherFrameHeaders headers = new CipherFrameHeaders();
             headers.setNonceLength(algorithm.getNonceLen());
