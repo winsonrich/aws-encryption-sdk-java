@@ -42,6 +42,7 @@ import com.amazonaws.encryptionsdk.exception.UnsupportedProviderException;
 import com.amazonaws.handlers.RequestHandler2;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClient;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
@@ -560,7 +561,7 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
     private static Region getStartingRegion(final String keyArn) {
         final String region = parseRegionfromKeyArn(keyArn);
         if (region != null) {
-            return Region.getRegion(Regions.fromName(region));
+            return RegionUtils.getRegion(region);
         }
         final Region currentRegion = Regions.getCurrentRegion();
         if (currentRegion != null) {
