@@ -88,13 +88,20 @@ public class MockKMSClient extends AWSKMSClient {
     private static final SecureRandom rnd = new SecureRandom();
     private static final String ACCOUNT_ID = "01234567890";
     private final Map<DecryptMapKey, DecryptResult> results_ = new HashMap<>();
-    private final Map<String, String> idToArnMap = new HashMap<>();
     private final Set<String> activeKeys = new HashSet<>();
+    private final Map<String, String> keyAliases = new HashMap<>();
     private Region region_ = Region.getRegion(Regions.DEFAULT_REGION);
 
     @Override
     public CreateAliasResult createAlias(CreateAliasRequest arg0) throws AmazonServiceException, AmazonClientException {
-        throw new java.lang.UnsupportedOperationException();
+        assertExists(arg0.getTargetKeyId());
+
+        keyAliases.put(
+                "alias/" + arg0.getAliasName(),
+                keyAliases.get(arg0.getTargetKeyId())
+        );
+
+        return new CreateAliasResult();
     }
 
     @Override
@@ -111,8 +118,9 @@ public class MockKMSClient extends AWSKMSClient {
     public CreateKeyResult createKey(CreateKeyRequest req) throws AmazonServiceException, AmazonClientException {
         String keyId = UUID.randomUUID().toString();
         String arn = "arn:aws:kms:" + region_.getName() + ":" + ACCOUNT_ID + ":key/" + keyId;
-        idToArnMap.put(keyId, arn);
         activeKeys.add(arn);
+        keyAliases.put(keyId, arn);
+        keyAliases.put(arn, arn);
         CreateKeyResult result = new CreateKeyResult();
         result.setKeyMetadata(new KeyMetadata().withAWSAccountId(ACCOUNT_ID).withCreationDate(new Date())
                 .withDescription(req.getDescription()).withEnabled(true).withKeyId(keyId)
@@ -183,7 +191,7 @@ public class MockKMSClient extends AWSKMSClient {
         final byte[] cipherText = new byte[512];
         rnd.nextBytes(cipherText);
         DecryptResult dec = new DecryptResult();
-        dec.withKeyId(req.getKeyId()).withPlaintext(req.getPlaintext().asReadOnlyBuffer());
+        dec.withKeyId(retrieveArn(req.getKeyId())).withPlaintext(req.getPlaintext().asReadOnlyBuffer());
         ByteBuffer ctBuff = ByteBuffer.wrap(cipherText);
 
         results_.put(new DecryptMapKey(ctBuff, req.getEncryptionContext()), dec);
@@ -336,20 +344,17 @@ public class MockKMSClient extends AWSKMSClient {
     }
 
     private String retrieveArn(final String keyId) {
-        String arn = keyId;
-        if (keyId.contains("arn:") == false) {
-            arn = idToArnMap.get(keyId);
-        }
+        String arn = keyAliases.get(keyId);
         assertExists(arn);
         return arn;
     }
 
     private void assertExists(String keyId) {
-        if (idToArnMap.containsKey(keyId)) {
-            keyId = idToArnMap.get(keyId);
+        if (keyAliases.containsKey(keyId)) {
+            keyId = keyAliases.get(keyId);
         }
         if (keyId == null || !activeKeys.contains(keyId)) {
-            throw new NotFoundException("Key doesn't exist");
+            throw new NotFoundException("Key doesn't exist: " + keyId);
         }
     }
 

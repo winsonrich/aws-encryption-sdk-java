@@ -450,6 +450,11 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         }
 
         String regionName = parseRegionfromKeyArn(keyId);
+
+        if (regionName == null && defaultRegion_ != null) {
+            regionName = defaultRegion_;
+        }
+
         AWSKMS kms = regionalClientSupplier_.getClient(regionName);
         if (kms == null) {
             throw new AwsCryptoException("Can't use keys from region " + regionName);
