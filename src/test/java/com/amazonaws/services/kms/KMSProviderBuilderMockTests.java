@@ -2,12 +2,14 @@ package com.amazonaws.services.kms;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
 import static com.amazonaws.regions.Region.getRegion;
+import static com.amazonaws.regions.Regions.DEFAULT_REGION;
 import static com.amazonaws.regions.Regions.fromName;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -31,11 +33,56 @@ import com.amazonaws.encryptionsdk.internal.VersionInfo;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider.RegionalClientSupplier;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kms.model.CreateAliasRequest;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.kms.model.EncryptRequest;
 import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
 
 public class KMSProviderBuilderMockTests {
+    @Test
+    public void testBareAliasMapping() {
+        MockKMSClient client = spy(new MockKMSClient());
+
+        RegionalClientSupplier supplier = mock(RegionalClientSupplier.class);
+        when(supplier.getClient(notNull())).thenReturn(client);
+
+        String key1 = client.createKey().getKeyMetadata().getKeyId();
+        client.createAlias(new CreateAliasRequest()
+                                   .withAliasName("foo")
+                                   .withTargetKeyId(key1)
+        );
+
+        KmsMasterKeyProvider mkp0 = KmsMasterKeyProvider.builder()
+                                                        .withKeysForEncryption("alias/foo")
+                                                        .withCustomClientFactory(supplier)
+                                                        .withDefaultRegion("us-west-2")
+                                                        .build();
+
+        new AwsCrypto().encryptData(mkp0, new byte[0]);
+    }
+
+    @Test
+    public void testBareAliasMapping_withLegacyCtor() {
+        MockKMSClient client = spy(new MockKMSClient());
+
+        RegionalClientSupplier supplier = mock(RegionalClientSupplier.class);
+        when(supplier.getClient(any())).thenReturn(client);
+
+        String key1 = client.createKey().getKeyMetadata().getKeyId();
+        client.createAlias(new CreateAliasRequest()
+            .withAliasName("foo")
+            .withTargetKeyId(key1)
+        );
+
+        KmsMasterKeyProvider mkp0 = new KmsMasterKeyProvider(
+                client, Region.getRegion(Regions.DEFAULT_REGION), Arrays.asList("alias/foo")
+        );
+
+        new AwsCrypto().encryptData(mkp0, new byte[0]);
+    }
+
     @Test
     public void testGrantTokenPassthrough_usingMKsetCall() throws Exception {
         MockKMSClient client = spy(new MockKMSClient());
