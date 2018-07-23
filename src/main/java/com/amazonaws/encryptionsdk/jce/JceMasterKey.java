@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -49,6 +51,7 @@ import com.amazonaws.encryptionsdk.internal.EncryptionContextSerializer;
  * {@link #getInstance(PublicKey, PrivateKey, String, String, String)}.
  */
 public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
+    private static final Logger LOGGER = Logger.getLogger(JceMasterKey.class.getName());
     private static final byte[] EMPTY_ARRAY = new byte[0];
 
     private final SecureRandom rnd = new SecureRandom();
@@ -234,12 +237,17 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
     }
 
     private static class Rsa extends JceMasterKey {
+        private static final Pattern SUPPORTED_TRANSFORMATIONS =
+            Pattern.compile("RSA/ECB/(?:PKCS1Padding|OAEPWithSHA-(?:1|256|384|512)AndMGF1Padding)");
         private final String transformation_;
 
         private Rsa(PublicKey wrappingKey, PrivateKey unwrappingKey, String providerName, String keyId,
                 String transformation) {
             super(wrappingKey, unwrappingKey, providerName, keyId);
             transformation_ = transformation;
+            if (!SUPPORTED_TRANSFORMATIONS.matcher(transformation_).matches()) {
+                LOGGER.warning(transformation_ + " is not officially supported by the JceMasterKey");
+            }
         }
 
         @Override
