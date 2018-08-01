@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3
+
+### Minor Changes
+* Move the `aws-encryption-sdk-java` repository from `awslabs` to `aws`.
+
 ## 1.3.2
 
 ### Minor Changes
