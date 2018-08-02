@@ -238,7 +238,8 @@ public abstract class JceMasterKey extends MasterKey<JceMasterKey> {
 
     private static class Rsa extends JceMasterKey {
         private static final Pattern SUPPORTED_TRANSFORMATIONS =
-            Pattern.compile("RSA/ECB/(?:PKCS1Padding|OAEPWithSHA-(?:1|256|384|512)AndMGF1Padding)");
+            Pattern.compile("RSA/ECB/(?:PKCS1Padding|OAEPWithSHA-(?:1|256|384|512)AndMGF1Padding)",
+                    Pattern.CASE_INSENSITIVE);
         private final String transformation_;
 
         private Rsa(PublicKey wrappingKey, PrivateKey unwrappingKey, String providerName, String keyId,
