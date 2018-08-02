@@ -4,6 +4,9 @@
 
 ### Minor Changes
 * Move the `aws-encryption-sdk-java` repository from `awslabs` to `aws`.
+* Log a warning when an unsupported asymmetric algorithm is used with `JceMasterKey`
+* Make `JceMasterKey` case insensitive
+* Fix bare aliases not using default region
 
 ## 1.3.2
 
