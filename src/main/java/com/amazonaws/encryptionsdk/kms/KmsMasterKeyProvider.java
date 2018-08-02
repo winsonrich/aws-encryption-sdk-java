@@ -259,12 +259,10 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             AWSKMSClientBuilder builder = templateBuilder_ != null ? cloneClientBuilder(templateBuilder_)
                                                                    : AWSKMSClientBuilder.standard();
 
-            ConcurrentHashMap<String, AWSKMS> clientCache = new ConcurrentHashMap<>();
-
-            return region -> clientCache.computeIfAbsent(region, region2 -> {
+            return region -> {
                 // Clone yet again as we're going to change the region field.
-                return cloneClientBuilder(builder).withRegion(region2).build();
-            });
+                return cloneClientBuilder(builder).withRegion(region).build();
+            };
         }
     }
 
