@@ -1,6 +1,8 @@
-package com.amazonaws.services.kms;
+package com.amazonaws.encryptionsdk.kms;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,13 +12,17 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.amazonaws.AbortedException;
-import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Request;
 import com.amazonaws.auth.AWSCredentials;
@@ -24,15 +30,73 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.encryptionsdk.AwsCrypto;
+import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.exception.CannotUnwrapDataKeyException;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.encryptionsdk.model.KeyBlob;
 import com.amazonaws.handlers.RequestHandler2;
 import com.amazonaws.http.exception.HttpRequestTimeoutException;
+import com.amazonaws.services.kms.AWSKMS;
+import com.amazonaws.services.kms.AWSKMSClientBuilder;
 
 public class KMSProviderBuilderIntegrationTests {
+    @Test
+    public void whenBogusRegionsDecrypted_doesNotLeakClients() throws Exception {
+        AtomicReference<ConcurrentHashMap<String, AWSKMS>> kmsCache = new AtomicReference<>();
+
+        KmsMasterKeyProvider mkp = (new KmsMasterKeyProvider.Builder() {
+            @Override protected void snoopClientCache(
+                    final ConcurrentHashMap<String, AWSKMS> map
+            ) {
+                kmsCache.set(map);
+            }
+        }).build();
+
+        try {
+            mkp.decryptDataKey(
+                    CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256,
+                    Collections.singleton(
+                            new KeyBlob("aws-kms",
+                                        "arn:aws:kms:us-bogus-1:123456789010:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f"
+                                                .getBytes(StandardCharsets.UTF_8),
+                                        new byte[40]
+                            )
+                    ),
+                    new HashMap<>()
+            );
+            fail("Expected CannotUnwrapDataKeyException");
+        } catch (CannotUnwrapDataKeyException e) {
+            // ok
+        }
+
+        assertTrue(kmsCache.get().isEmpty());
+    }
+
+    @Test
+    public void whenOperationSuccessful_clientIsCached() {
+        AtomicReference<ConcurrentHashMap<String, AWSKMS>> kmsCache = new AtomicReference<>();
+
+        KmsMasterKeyProvider mkp = (new KmsMasterKeyProvider.Builder() {
+            @Override protected void snoopClientCache(
+                    final ConcurrentHashMap<String, AWSKMS> map
+            ) {
+                kmsCache.set(map);
+            }
+        }).withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0])
+          .build();
+
+        new AwsCrypto().encryptData(mkp, new byte[1]);
+
+        AWSKMS kms = kmsCache.get().get("us-west-2");
+        assertNotNull(kms);
+
+        new AwsCrypto().encryptData(mkp, new byte[1]);
+
+        // Cache entry should stay the same
+        assertEquals(kms, kmsCache.get().get("us-west-2"));
+    }
 
     @Test
     public void whenConstructedWithoutArguments_canUseMultipleRegions() throws Exception {
@@ -75,7 +139,7 @@ public class KMSProviderBuilderIntegrationTests {
                 KmsMasterKeyProvider.builder()
                                     .withClientBuilder(
                                             AWSKMSClientBuilder.standard()
-                                                .withRequestHandlers(handler)
+                                                               .withRequestHandlers(handler)
                                     )
                                     .withKeysForEncryption(KMSTestFixtures.TEST_KEY_IDS[0])
                                     .build();

@@ -1,8 +1,7 @@
-package com.amazonaws.services.kms;
+package com.amazonaws.encryptionsdk.kms;
 
 import static com.amazonaws.encryptionsdk.multi.MultipleProviderFactory.buildMultiProvider;
 import static com.amazonaws.regions.Region.getRegion;
-import static com.amazonaws.regions.Regions.DEFAULT_REGION;
 import static com.amazonaws.regions.Regions.fromName;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
@@ -30,8 +29,6 @@ import com.amazonaws.RequestClientOptions;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.internal.VersionInfo;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider.RegionalClientSupplier;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;

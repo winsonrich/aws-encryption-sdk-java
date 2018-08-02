@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.services.kms;
+package com.amazonaws.encryptionsdk.kms;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -32,7 +32,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoResult;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

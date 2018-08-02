@@ -3,8 +3,8 @@ package com.amazonaws.encryptionsdk;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import com.amazonaws.services.kms.KMSProviderBuilderIntegrationTests;
-import com.amazonaws.services.kms.XCompatKmsDecryptTest;
+import com.amazonaws.encryptionsdk.kms.KMSProviderBuilderIntegrationTests;
+import com.amazonaws.encryptionsdk.kms.XCompatKmsDecryptTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({

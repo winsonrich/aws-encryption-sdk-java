@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.services.kms;
+package com.amazonaws.encryptionsdk.kms;
 
 import static com.amazonaws.encryptionsdk.CryptoAlgorithm.ALG_AES_128_GCM_IV12_TAG16_NO_KDF;
 import static com.amazonaws.encryptionsdk.internal.RandomBytesGenerator.generate;
@@ -34,11 +34,10 @@ import com.amazonaws.encryptionsdk.MasterKey;
 import com.amazonaws.encryptionsdk.MasterKeyProvider;
 import com.amazonaws.encryptionsdk.MasterKeyRequest;
 import com.amazonaws.encryptionsdk.jce.JceMasterKey;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
-import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
 import com.amazonaws.encryptionsdk.multi.MultipleProviderFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kms.AWSKMS;
 
 public class LegacyKMSMasterKeyProviderTests {
     private static final String WRAPPING_ALG = "AES/GCM/NoPadding";

@@ -2,7 +2,9 @@
 
 ## 1.3.5
 
-(nothing yet)
+### Minor Changes
+
+* Restored the KMS client cache with a fix for the memory leak.
 
 ## 1.3.4
 
