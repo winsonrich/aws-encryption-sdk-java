@@ -55,7 +55,7 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     /**
      * Encryption algorithm for the randomly generated data key
      */
-    private static final String DATA_KEY_ENCRHYPTION_ALGORITHM = "AES";
+    private static final String DATA_KEY_ENCRYPTION_ALGORITHM = "AES";
     
     /**
      * The ID of the master key
@@ -104,7 +104,7 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
             
             masterKeyEncryptionCipher_ = Cipher.getInstance(MASTER_KEY_ENCRYPTION_ALGORITHM);
             masterKeyEncryptionCipher_.init(Cipher.ENCRYPT_MODE, pubKey);
-            
+
             masterKeyDecryptionCipher_ = Cipher.getInstance(MASTER_KEY_ENCRYPTION_ALGORITHM);
             masterKeyDecryptionCipher_.init(Cipher.DECRYPT_MODE, privKey);
             
@@ -135,7 +135,7 @@ public class StaticMasterKey extends MasterKey<StaticMasterKey> {
     public DataKey<StaticMasterKey> generateDataKey(CryptoAlgorithm algorithm,
             Map<String, String> encryptionContext) {
         try {
-            this.keyGenerator_ = KeyGenerator.getInstance(DATA_KEY_ENCRHYPTION_ALGORITHM);
+            this.keyGenerator_ = KeyGenerator.getInstance(DATA_KEY_ENCRYPTION_ALGORITHM);
             this.keyGenerator_.init(algorithm.getDataKeyLength() * 8, SRAND);
             SecretKey key = new SecretKeySpec(keyGenerator_.generateKey().getEncoded(), algorithm.getDataKeyAlgo());
             byte[] encryptedKey = masterKeyEncryptionCipher_.doFinal(key.getEncoded());
