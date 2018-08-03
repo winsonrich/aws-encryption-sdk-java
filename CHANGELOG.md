@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.5
+
+(nothing yet)
+
+## 1.3.4
+
+### Minor Changes
+
+* Removed the KMS client cache, which could result in a memory leak when
+decrypting certain malformed ciphertexts. This may reduce performance slightly
+in some scenarios.
+
 ## 1.3.3
 
 ### Minor Changes
