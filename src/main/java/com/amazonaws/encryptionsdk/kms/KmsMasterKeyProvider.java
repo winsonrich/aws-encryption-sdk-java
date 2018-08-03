@@ -25,8 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Request;
+import com.amazonaws.Response;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -71,11 +75,15 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
         AWSKMS getClient(String regionName);
     }
 
-    public static final class Builder implements Cloneable {
+    public static class Builder implements Cloneable {
         private String defaultRegion_ = null;
         private RegionalClientSupplier regionalClientSupplier_ = null;
         private AWSKMSClientBuilder templateBuilder_ = null;
         private List<String> keyIds_ = new ArrayList<>();
+
+        Builder() {
+            // Default access: Don't allow outside classes to extend this class
+        }
 
         public Builder clone() {
             try {
@@ -259,10 +267,67 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             AWSKMSClientBuilder builder = templateBuilder_ != null ? cloneClientBuilder(templateBuilder_)
                                                                    : AWSKMSClientBuilder.standard();
 
+            ConcurrentHashMap<String, AWSKMS> clientCache = new ConcurrentHashMap<>();
+            snoopClientCache(clientCache);
+
             return region -> {
-                // Clone yet again as we're going to change the region field.
-                return cloneClientBuilder(builder).withRegion(region).build();
+                AWSKMS kms = clientCache.get(region);
+
+                if (kms != null) return kms;
+
+                // We can't just use computeIfAbsent as we need to avoid leaking KMS clients if we're asked to decrypt
+                // an EDK with a bogus region in its ARN. So we'll install a request handler to identify the first
+                // successful call, and cache it when we see that.
+                SuccessfulRequestCacher cacher = new SuccessfulRequestCacher(clientCache, region);
+                ArrayList<RequestHandler2> handlers = new ArrayList<>();
+                if (builder.getRequestHandlers() != null) {
+                    handlers.addAll(builder.getRequestHandlers());
+                }
+                handlers.add(cacher);
+
+                kms = cloneClientBuilder(builder)
+                        .withRegion(region)
+                        .withRequestHandlers(handlers.toArray(new RequestHandler2[handlers.size()]))
+                        .build();
+                cacher.client_ = kms;
+
+                return kms;
             };
+        }
+
+        protected void snoopClientCache(ConcurrentHashMap<String, AWSKMS> map) {
+            // no-op - this is a test hook
+        }
+    }
+
+    private static class SuccessfulRequestCacher extends RequestHandler2 {
+        private final ConcurrentHashMap<String, AWSKMS> cache_;
+        private final String region_;
+        private AWSKMS client_;
+
+        volatile boolean ranBefore_ = false;
+
+        private SuccessfulRequestCacher(
+                final ConcurrentHashMap<String, AWSKMS> cache,
+                final String region
+        ) {
+            this.region_ = region;
+            this.cache_ = cache;
+        }
+
+        @Override public void afterResponse(final Request<?> request, final Response<?> response) {
+            if (ranBefore_) return;
+            ranBefore_ = true;
+
+            cache_.putIfAbsent(region_, client_);
+        }
+
+        @Override public void afterError(final Request<?> request, final Response<?> response, final Exception e) {
+            if (ranBefore_) return;
+            if (e instanceof AmazonServiceException) {
+                ranBefore_ = true;
+                cache_.putIfAbsent(region_, client_);
+            }
         }
     }
 
@@ -453,12 +518,17 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             regionName = defaultRegion_;
         }
 
-        AWSKMS kms = regionalClientSupplier_.getClient(regionName);
-        if (kms == null) {
-            throw new AwsCryptoException("Can't use keys from region " + regionName);
-        }
+        String regionName_ = regionName;
 
-        final KmsMasterKey result = KmsMasterKey.getInstance(kms, keyId, this);
+        Supplier<AWSKMS> kmsSupplier = () -> {
+            AWSKMS kms = regionalClientSupplier_.getClient(regionName_);
+            if (kms == null) {
+                throw new AwsCryptoException("Can't use keys from region " + regionName_);
+            }
+            return kms;
+        };
+
+        final KmsMasterKey result = KmsMasterKey.getInstance(kmsSupplier, keyId, this);
         result.setGrantTokens(grantTokens_);
         return result;
     }

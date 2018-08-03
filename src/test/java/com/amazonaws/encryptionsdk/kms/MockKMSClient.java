@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.amazonaws.services.kms;
+package com.amazonaws.encryptionsdk.kms;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -29,6 +29,7 @@ import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.ResponseMetadata;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kms.AWSKMSClient;
 import com.amazonaws.services.kms.model.CreateAliasRequest;
 import com.amazonaws.services.kms.model.CreateAliasResult;
 import com.amazonaws.services.kms.model.CreateGrantRequest;

@@ -1,8 +1,20 @@
 # Changelog
 
-## 1.3.5
+## 1.3.6
+
+### Minor Changes
 
 (nothing yet)
+
+## 1.3.5
+
+### Minor Changes
+
+* Restored the KMS client cache with a fix for the memory leak.
+* When using a master key provider that can only service a subset of regions
+(e.g. using the deprecated constructors), and requesting a master key from a
+region not servicable by that MKP, the exception will now be thrown on first
+use of the MK, rather than at getMasterKey time.
 
 ## 1.3.4
 

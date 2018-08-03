@@ -1,4 +1,4 @@
-package com.amazonaws.services.kms;
+package com.amazonaws.encryptionsdk.kms;
 
 final class KMSTestFixtures {
     private KMSTestFixtures() {
