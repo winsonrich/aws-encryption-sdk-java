@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.6
+
+### Minor Changes
+
+(nothing yet)
+
 ## 1.3.5
 
 ### Minor Changes
