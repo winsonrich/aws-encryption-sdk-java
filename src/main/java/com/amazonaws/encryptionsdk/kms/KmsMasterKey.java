@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceRequest;
@@ -48,7 +49,7 @@ import com.amazonaws.services.kms.model.GenerateDataKeyResult;
  * {@link AwsCrypto}.
  */
 public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMethods {
-    private final AWSKMS kms_;
+    private final Supplier<AWSKMS> kms_;
     private final MasterKeyProvider<KmsMasterKey> sourceProvider_;
     private final String id_;
     private final List<String> grantTokens_ = new ArrayList<>();
@@ -77,12 +78,12 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         return new KmsMasterKeyProvider(creds, keyId).getMasterKey(keyId);
     }
 
-    static KmsMasterKey getInstance(final AWSKMS kms, final String id,
+    static KmsMasterKey getInstance(final Supplier<AWSKMS> kms, final String id,
             final MasterKeyProvider<KmsMasterKey> provider) {
         return new KmsMasterKey(kms, id, provider);
     }
 
-    private KmsMasterKey(final AWSKMS kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
+    private KmsMasterKey(final Supplier<AWSKMS> kms, final String id, final MasterKeyProvider<KmsMasterKey> provider) {
         kms_ = kms;
         id_ = id;
         sourceProvider_ = provider;
@@ -101,7 +102,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
     @Override
     public DataKey<KmsMasterKey> generateDataKey(final CryptoAlgorithm algorithm,
             final Map<String, String> encryptionContext) {
-        final GenerateDataKeyResult gdkResult = kms_.generateDataKey(updateUserAgent(
+        final GenerateDataKeyResult gdkResult = kms_.get().generateDataKey(updateUserAgent(
                 new GenerateDataKeyRequest()
                         .withKeyId(getKeyId())
                         .withNumberOfBytes(algorithm.getDataKeyLength())
@@ -145,7 +146,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
             throw new IllegalArgumentException("Only RAW encoded keys are supported");
         }
         try {
-            final EncryptResult encryptResult = kms_.encrypt(updateUserAgent(
+            final EncryptResult encryptResult = kms_.get().encrypt(updateUserAgent(
                     new EncryptRequest()
                             .withKeyId(id_)
                             .withPlaintext(ByteBuffer.wrap(key.getEncoded()))
@@ -167,7 +168,7 @@ public final class KmsMasterKey extends MasterKey<KmsMasterKey> implements KmsMe
         final List<Exception> exceptions = new ArrayList<>();
         for (final EncryptedDataKey edk : encryptedDataKeys) {
             try {
-                final DecryptResult decryptResult = kms_.decrypt(updateUserAgent(
+                final DecryptResult decryptResult = kms_.get().decrypt(updateUserAgent(
                         new DecryptRequest()
                                 .withCiphertextBlob(ByteBuffer.wrap(edk.getEncryptedDataKey()))
                                 .withEncryptionContext(encryptionContext)

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
@@ -517,12 +518,17 @@ public class KmsMasterKeyProvider extends MasterKeyProvider<KmsMasterKey> implem
             regionName = defaultRegion_;
         }
 
-        AWSKMS kms = regionalClientSupplier_.getClient(regionName);
-        if (kms == null) {
-            throw new AwsCryptoException("Can't use keys from region " + regionName);
-        }
+        String regionName_ = regionName;
 
-        final KmsMasterKey result = KmsMasterKey.getInstance(kms, keyId, this);
+        Supplier<AWSKMS> kmsSupplier = () -> {
+            AWSKMS kms = regionalClientSupplier_.getClient(regionName_);
+            if (kms == null) {
+                throw new AwsCryptoException("Can't use keys from region " + regionName_);
+            }
+            return kms;
+        };
+
+        final KmsMasterKey result = KmsMasterKey.getInstance(kmsSupplier, keyId, this);
         result.setGrantTokens(grantTokens_);
         return result;
     }
