@@ -15,7 +15,9 @@ package com.amazonaws.encryptionsdk.model;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -169,5 +171,52 @@ public class KeyBlobTest {
         final KeyBlob reconstructedKeyBlob = deserialize(keyBlobBytes);
 
         assertEquals(mockDataKey_.getEncryptedDataKey().length, reconstructedKeyBlob.getEncryptedDataKeyLen());
+    }
+
+    @Test
+    public void checkNegativeKeyProviderIdLen() {
+        final KeyBlob reconstruct = new KeyBlob();
+        final byte[] keyBlobBytes = createKeyBlobBytes();
+
+        // we will manually set the keyProviderIdLen to negative
+        final byte[] negativeKeyProviderIdLen = ByteBuffer.allocate(Short.BYTES)
+	    .putShort((short) -1).array();
+        System.arraycopy(negativeKeyProviderIdLen, 0, keyBlobBytes, 0, Short.BYTES);
+
+	reconstruct.deserialize(keyBlobBytes, 0);
+	// negative key provider id len throws parse exception so deserialization is incomplete
+	assertFalse(reconstruct.isComplete());
+    }
+
+    @Test
+    public void checkNegativeKeyProviderInfoLen() {
+	final KeyBlob reconstruct = new KeyBlob();
+        final byte[] keyBlobBytes = createKeyBlobBytes();
+
+        // we will manually set the keyProviderInfoLen to negative
+        final byte[] negativeKeyProviderInfoLen = ByteBuffer.allocate(Short.BYTES)
+	    .putShort((short) -1).array();
+	int offset = Short.BYTES + providerId_.length();
+        System.arraycopy(negativeKeyProviderInfoLen, 0, keyBlobBytes, offset, Short.BYTES);
+
+        reconstruct.deserialize(keyBlobBytes, 0);
+        // negative key provider info len throws parse exception so deserialization is incomplete
+        assertFalse(reconstruct.isComplete());
+    }
+
+    @Test
+    public void checkNegativeKeyLen() {
+        final KeyBlob reconstruct = new KeyBlob();
+        final byte[] keyBlobBytes = createKeyBlobBytes();
+
+        // we will manually set the keyLen to negative
+        final byte[] negativeKeyLen = ByteBuffer.allocate(Short.BYTES)
+	    .putShort((short) -1).array();
+        int offset = Short.BYTES + providerId_.length() + Short.BYTES + providerInfo_.length();
+        System.arraycopy(negativeKeyLen, 0, keyBlobBytes, offset, Short.BYTES);
+
+        reconstruct.deserialize(keyBlobBytes, 0);
+        // negative key len throws parse exception so deserialization is incomplete
+        assertFalse(reconstruct.isComplete());
     }
 }
