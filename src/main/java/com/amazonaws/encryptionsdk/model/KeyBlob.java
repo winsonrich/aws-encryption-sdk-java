@@ -77,6 +77,35 @@ public final class KeyBlob implements EncryptedDataKey {
         setKeyProviderId(edk.getProviderId());
         setKeyProviderInfo(edk.getProviderInformation());
     }
+
+    /**
+     * Parses a field corresponding to the length of a byte array. It looks
+     * for two bytes representing a short primitive type in the provided bytes
+     * starting at the specified off.
+     *
+     * <p>
+     * If successful, it returns the length read. On failure, it throws a parse exception.
+     *
+     * @param b
+     *            the byte array to parse.
+     * @param off
+     *            the offset in the byte array to use when parsing.
+     * @param name
+     *             the name of the field being parsed.
+     * @return
+     *         the value parsed.
+     * @throws ParseException
+     *             if there are not sufficient bytes to parse the length
+     *             or the length is negative
+     */
+    private short parseFieldLength(final byte[] b, final int off, final String name) throws ParseException {
+        short len = PrimitivesParser.parseShort(b, off);
+        if (len < 0) {
+	    throw new ParseException("Parsed negative length for " + name);
+        }
+        return len;
+    }
+    
     /**
      * Parse the key provider identifier length in the provided bytes. It looks
      * for 2 bytes representing a short primitive type in the provided bytes
@@ -95,14 +124,10 @@ public final class KeyBlob implements EncryptedDataKey {
      *         primitive.
      * @throws ParseException
      *             if there are not sufficient bytes to parse the identifier
-     *             length.
+     *             length or the length is negative.
      */
     private int parseKeyProviderIdLen(final byte[] b, final int off) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        if (len < 0) {
-            throw new ParseException("Parsed negative length for key provider id");
-        }
-        keyProviderIdLen_ = len;
+        keyProviderIdLen_ = parseFieldLength(b, off, "key provider id");
         return Short.SIZE / Byte.SIZE;
     }
 
@@ -153,14 +178,10 @@ public final class KeyBlob implements EncryptedDataKey {
      *         primitive type.
      * @throws ParseException
      *             if there are not sufficient bytes to parse the provider info
-     *             length.
+     *             length or the length is negative.
      */
     private int parseKeyProviderInfoLen(final byte[] b, final int off) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        if (len < 0) {
-            throw new ParseException("Parsed negative length for key provider info");
-        }
-        keyProviderInfoLen_ = len;
+        keyProviderInfoLen_ = parseFieldLength(b, off, "key provider info");
         return Short.SIZE / Byte.SIZE;
     }
 
@@ -213,11 +234,7 @@ public final class KeyBlob implements EncryptedDataKey {
      *             if there are not sufficient bytes to parse the key length.
      */
     private int parseKeyLen(final byte[] b, final int off) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        if (len < 0) {
-            throw new ParseException("Parsed negative length for key");
-        }
-        encryptedKeyLen_ = len;
+        encryptedKeyLen_ = parseFieldLength(b, off, "key");
         return Short.SIZE / Byte.SIZE;
     }
 
