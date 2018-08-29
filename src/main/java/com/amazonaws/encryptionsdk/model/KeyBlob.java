@@ -100,7 +100,7 @@ public final class KeyBlob implements EncryptedDataKey {
      *             length.
      */
     private int parseKeyProviderIdLen(final byte[] b, final int off) throws ParseException {
-	keyProviderIdLen_ = PrimitivesParser.parseUnsignedShort(b, off);
+        keyProviderIdLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         return Short.SIZE / Byte.SIZE;
     }
 
