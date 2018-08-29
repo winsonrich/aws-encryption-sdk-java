@@ -173,40 +173,65 @@ public class KeyBlobTest {
         assertEquals(mockDataKey_.getEncryptedDataKey().length, reconstructedKeyBlob.getEncryptedDataKeyLen());
     }
 
+    private byte[] negativeKeyProviderIdLenTestVector() {
+	// key provider id len of -1, key provider info len of 2, and key len of 3
+        return new byte[]{
+            (byte)0xff, (byte)0xff, (byte)0x01, (byte)0x00, (byte)0x02, (byte)0x02, (byte)0x03,
+	    (byte)0x00, (byte)0x03, (byte)0x04, (byte)0x05, (byte)0x06
+        };
+    }
+
+    private byte[] negativeKeyProviderInfoLenTestVector() {
+	// key provider id len of 1, key provider info len of -2, key len of 3
+        return new byte[] {
+            (byte)0x00, (byte)0x01, (byte)0x01, (byte)0xff, (byte)0xfe, (byte)0x02, (byte)0x03,
+            (byte)0x00, (byte)0x03, (byte)0x04, (byte)0x05, (byte)0x06
+        };
+    }
+
+    private byte[] negativeKeyLenTestVector() {
+	// key provider id len of 1, key provider info len of 2, key len of -3
+        return new byte[] {
+            (byte)0x00, (byte)0x01, (byte)0x01, (byte)0x00, (byte)0x00, (byte)0x02, (byte)0x03,
+            (byte)0xff, (byte)0xfd, (byte)0x04, (byte)0x05, (byte)0x06
+        };
+    }
+
+    private void assertIncomplete(final byte[] vector) {
+	assertFalse(deserialize(vector).isComplete());
+    }
+    
     @Test
     public void checkNegativeKeyProviderIdLen() {
-        final KeyBlob reconstruct = new KeyBlob();
         final byte[] keyBlobBytes = createKeyBlobBytes();
 
-        // we will manually set the keyProviderIdLen to negative
+        // manually set the keyProviderIdLen to negative
         final byte[] negativeKeyProviderIdLen = ByteBuffer.allocate(Short.BYTES)
 	    .putShort((short) -1).array();
         System.arraycopy(negativeKeyProviderIdLen, 0, keyBlobBytes, 0, Short.BYTES);
 
-	reconstruct.deserialize(keyBlobBytes, 0);
-	// negative key provider id len throws parse exception so deserialization is incomplete
-	assertFalse(reconstruct.isComplete());
+	// a negative field length throws a parse exception, so deserialization is incomplete
+	assertIncomplete(keyBlobBytes);
+	assertIncomplete(negativeKeyProviderIdLenTestVector());
     }
 
     @Test
     public void checkNegativeKeyProviderInfoLen() {
-	final KeyBlob reconstruct = new KeyBlob();
         final byte[] keyBlobBytes = createKeyBlobBytes();
 
-        // we will manually set the keyProviderInfoLen to negative
+        // manually set the keyProviderInfoLen to negative
         final byte[] negativeKeyProviderInfoLen = ByteBuffer.allocate(Short.BYTES)
 	    .putShort((short) -1).array();
 	int offset = Short.BYTES + providerId_.length();
         System.arraycopy(negativeKeyProviderInfoLen, 0, keyBlobBytes, offset, Short.BYTES);
 
-        reconstruct.deserialize(keyBlobBytes, 0);
-        // negative key provider info len throws parse exception so deserialization is incomplete
-        assertFalse(reconstruct.isComplete());
+       	// a negative field length throws a parse exception, so deserialization is incomplete
+	assertIncomplete(keyBlobBytes);
+	assertIncomplete(negativeKeyProviderInfoLenTestVector());
     }
 
     @Test
     public void checkNegativeKeyLen() {
-        final KeyBlob reconstruct = new KeyBlob();
         final byte[] keyBlobBytes = createKeyBlobBytes();
 
         // we will manually set the keyLen to negative
@@ -215,8 +240,8 @@ public class KeyBlobTest {
         int offset = Short.BYTES + providerId_.length() + Short.BYTES + providerInfo_.length();
         System.arraycopy(negativeKeyLen, 0, keyBlobBytes, offset, Short.BYTES);
 
-        reconstruct.deserialize(keyBlobBytes, 0);
         // negative key len throws parse exception so deserialization is incomplete
-        assertFalse(reconstruct.isComplete());
+	assertIncomplete(keyBlobBytes);
+	assertIncomplete(negativeKeyLenTestVector());
     }
 }
