@@ -17,7 +17,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -213,7 +212,7 @@ public class KeyBlobTest {
     }
 
     @Test
-    public void checkNegativeKeyLen() {
+    public void checkKeyLenUnsigned() {
         // key length is too large for a signed short but fits in unsigned
         final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Short.MAX_VALUE + 3);
         final byte[] arr = blob.toByteArray();
