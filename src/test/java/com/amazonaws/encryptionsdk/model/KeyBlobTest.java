@@ -188,36 +188,36 @@ public class KeyBlobTest {
     }
 
     private void assertKeyBlobsEqual(KeyBlob b1, KeyBlob b2) {
-	assertArrayEquals(b1.getProviderId().getBytes(StandardCharsets.UTF_8),
-			  b2.getProviderId().getBytes(StandardCharsets.UTF_8));
-	assertArrayEquals(b1.getProviderInformation(), b2.getProviderInformation());
-	assertArrayEquals(b1.getEncryptedDataKey(), b2.getEncryptedDataKey());
+        assertArrayEquals(b1.getProviderId().getBytes(StandardCharsets.UTF_8),
+                          b2.getProviderId().getBytes(StandardCharsets.UTF_8));
+        assertArrayEquals(b1.getProviderInformation(), b2.getProviderInformation());
+        assertArrayEquals(b1.getEncryptedDataKey(), b2.getEncryptedDataKey());
     }
     
     @Test
     public void checkKeyProviderIdLenUnsigned() {
-	// provider id length is too large for a signed short but fits in unsigned
-	final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE + 1, Short.MAX_VALUE, Short.MAX_VALUE);
-	final byte[] arr = blob.toByteArray();
+        // provider id length is too large for a signed short but fits in unsigned
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE + 1, Short.MAX_VALUE, Short.MAX_VALUE);
+        final byte[] arr = blob.toByteArray();
 
-	assertKeyBlobsEqual(deserialize(arr), blob);
+        assertKeyBlobsEqual(deserialize(arr), blob);
     }
 
     @Test
     public void checkKeyProviderInfoLenUnsigned() {
-	// provider info length is too large for a signed short but fits in unsigned
-	final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE + 2, Short.MAX_VALUE);
-	final byte[] arr = blob.toByteArray();
+        // provider info length is too large for a signed short but fits in unsigned
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE + 2, Short.MAX_VALUE);
+        final byte[] arr = blob.toByteArray();
 
-	assertKeyBlobsEqual(deserialize(arr), blob);
+        assertKeyBlobsEqual(deserialize(arr), blob);
     }
 
     @Test
     public void checkNegativeKeyLen() {
-	// key length is too large for a signed short but fits in unsigned
-	final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Short.MAX_VALUE + 3);
-	final byte[] arr = blob.toByteArray();
+        // key length is too large for a signed short but fits in unsigned
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Short.MAX_VALUE + 3);
+        final byte[] arr = blob.toByteArray();
 
-	assertKeyBlobsEqual(deserialize(arr), blob);
+        assertKeyBlobsEqual(deserialize(arr), blob);
     }
 }
