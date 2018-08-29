@@ -15,10 +15,9 @@ package com.amazonaws.encryptionsdk.model;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +27,7 @@ import org.junit.Test;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
+import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 
@@ -78,7 +78,7 @@ public class KeyBlobTest {
 
         final DataKey<StaticMasterKey> mockDataKey = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
-        final int providerId_Len = Short.MAX_VALUE + 1;
+        final int providerId_Len = Constants.UNSIGNED_SHORT_MAX_VAL + 1;
         final byte[] providerId_Bytes = RandomBytesGenerator.generate(providerId_Len);
         final String providerId_ = new String(providerId_Bytes, StandardCharsets.UTF_8);
 
@@ -95,7 +95,7 @@ public class KeyBlobTest {
 
         final DataKey<StaticMasterKey> mockDataKey = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
-        final int providerInfo_Len = Short.MAX_VALUE + 1;
+        final int providerInfo_Len = Constants.UNSIGNED_SHORT_MAX_VAL + 1;
         final byte[] providerInfo_ = RandomBytesGenerator.generate(providerInfo_Len);
 
         new KeyBlob(providerId_, providerInfo_, mockDataKey.getEncryptedDataKey());
@@ -103,7 +103,7 @@ public class KeyBlobTest {
 
     @Test(expected = AwsCryptoException.class)
     public void overlyLargeKey() {
-        final int keyLen = Short.MAX_VALUE + 1;
+        final int keyLen = Constants.UNSIGNED_SHORT_MAX_VAL + 1;
         final byte[] encryptedKeyBytes = RandomBytesGenerator.generate(keyLen);
 
         new KeyBlob(providerId_, providerInfo_.getBytes(StandardCharsets.UTF_8), encryptedKeyBytes);
@@ -173,75 +173,51 @@ public class KeyBlobTest {
         assertEquals(mockDataKey_.getEncryptedDataKey().length, reconstructedKeyBlob.getEncryptedDataKeyLen());
     }
 
-    private byte[] negativeKeyProviderIdLenTestVector() {
-	// key provider id len of -1, key provider info len of 2, and key len of 3
-        return new byte[]{
-            (byte)0xff, (byte)0xff, (byte)0x01, (byte)0x00, (byte)0x02, (byte)0x02, (byte)0x03,
-	    (byte)0x00, (byte)0x03, (byte)0x04, (byte)0x05, (byte)0x06
-        };
+    private KeyBlob generateRandomKeyBlob(int idLen, int infoLen, int keyLen) {
+        final byte[] idBytes = RandomBytesGenerator.generate(idLen);
+        // negative bytes translate into U+FFFD, so no thanks
+        for (int i = 0; i < idBytes.length; i++) {
+            if (idBytes[i] < 0) {
+                idBytes[i] = (byte) (idBytes[i] - Byte.MIN_VALUE);
+            }
+        }
+        final byte[] infoBytes = RandomBytesGenerator.generate(infoLen);
+        final byte[] keyBytes = RandomBytesGenerator.generate(keyLen);
+
+        return new KeyBlob(new String(idBytes, StandardCharsets.UTF_8), infoBytes, keyBytes);
     }
 
-    private byte[] negativeKeyProviderInfoLenTestVector() {
-	// key provider id len of 1, key provider info len of -2, key len of 3
-        return new byte[] {
-            (byte)0x00, (byte)0x01, (byte)0x01, (byte)0xff, (byte)0xfe, (byte)0x02, (byte)0x03,
-            (byte)0x00, (byte)0x03, (byte)0x04, (byte)0x05, (byte)0x06
-        };
-    }
-
-    private byte[] negativeKeyLenTestVector() {
-	// key provider id len of 1, key provider info len of 2, key len of -3
-        return new byte[] {
-            (byte)0x00, (byte)0x01, (byte)0x01, (byte)0x00, (byte)0x00, (byte)0x02, (byte)0x03,
-            (byte)0xff, (byte)0xfd, (byte)0x04, (byte)0x05, (byte)0x06
-        };
-    }
-
-    private void assertIncomplete(final byte[] vector) {
-	assertFalse(deserialize(vector).isComplete());
+    private void assertKeyBlobsEqual(KeyBlob b1, KeyBlob b2) {
+	assertArrayEquals(b1.getProviderId().getBytes(StandardCharsets.UTF_8),
+			  b2.getProviderId().getBytes(StandardCharsets.UTF_8));
+	assertArrayEquals(b1.getProviderInformation(), b2.getProviderInformation());
+	assertArrayEquals(b1.getEncryptedDataKey(), b2.getEncryptedDataKey());
     }
     
     @Test
-    public void checkNegativeKeyProviderIdLen() {
-        final byte[] keyBlobBytes = createKeyBlobBytes();
+    public void checkKeyProviderIdLenUnsigned() {
+	// provider id length is too large for a signed short but fits in unsigned
+	final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE + 1, Short.MAX_VALUE, Short.MAX_VALUE);
+	final byte[] arr = blob.toByteArray();
 
-        // manually set the keyProviderIdLen to negative
-        final byte[] negativeKeyProviderIdLen = ByteBuffer.allocate(Short.BYTES)
-	    .putShort((short) -1).array();
-        System.arraycopy(negativeKeyProviderIdLen, 0, keyBlobBytes, 0, Short.BYTES);
-
-	// a negative field length throws a parse exception, so deserialization is incomplete
-	assertIncomplete(keyBlobBytes);
-	assertIncomplete(negativeKeyProviderIdLenTestVector());
+	assertKeyBlobsEqual(deserialize(arr), blob);
     }
 
     @Test
-    public void checkNegativeKeyProviderInfoLen() {
-        final byte[] keyBlobBytes = createKeyBlobBytes();
+    public void checkKeyProviderInfoLenUnsigned() {
+	// provider info length is too large for a signed short but fits in unsigned
+	final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE + 2, Short.MAX_VALUE);
+	final byte[] arr = blob.toByteArray();
 
-        // manually set the keyProviderInfoLen to negative
-        final byte[] negativeKeyProviderInfoLen = ByteBuffer.allocate(Short.BYTES)
-	    .putShort((short) -1).array();
-	int offset = Short.BYTES + providerId_.length();
-        System.arraycopy(negativeKeyProviderInfoLen, 0, keyBlobBytes, offset, Short.BYTES);
-
-       	// a negative field length throws a parse exception, so deserialization is incomplete
-	assertIncomplete(keyBlobBytes);
-	assertIncomplete(negativeKeyProviderInfoLenTestVector());
+	assertKeyBlobsEqual(deserialize(arr), blob);
     }
 
     @Test
     public void checkNegativeKeyLen() {
-        final byte[] keyBlobBytes = createKeyBlobBytes();
+	// key length is too large for a signed short but fits in unsigned
+	final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Short.MAX_VALUE + 3);
+	final byte[] arr = blob.toByteArray();
 
-        // we will manually set the keyLen to negative
-        final byte[] negativeKeyLen = ByteBuffer.allocate(Short.BYTES)
-	    .putShort((short) -1).array();
-        int offset = Short.BYTES + providerId_.length() + Short.BYTES + providerInfo_.length();
-        System.arraycopy(negativeKeyLen, 0, keyBlobBytes, offset, Short.BYTES);
-
-        // negative key len throws parse exception so deserialization is incomplete
-	assertIncomplete(keyBlobBytes);
-	assertIncomplete(negativeKeyLenTestVector());
+	assertKeyBlobsEqual(deserialize(arr), blob);
     }
 }

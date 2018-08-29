@@ -20,6 +20,7 @@ import java.util.Arrays;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.ParseException;
+import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
 
 /**
@@ -41,11 +42,11 @@ import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
  * </ol>
  */
 public final class KeyBlob implements EncryptedDataKey {
-    private short keyProviderIdLen_ = -1;
+    private int keyProviderIdLen_ = -1;
     private byte[] keyProviderId_;
-    private short keyProviderInfoLen_ = -1;
+    private int keyProviderInfoLen_ = -1;
     private byte[] keyProviderInfo_;
-    private short encryptedKeyLen_ = -1;
+    private int encryptedKeyLen_ = -1;
     private byte[] encryptedKey_;
 
     private boolean isComplete_ = false;
@@ -79,34 +80,6 @@ public final class KeyBlob implements EncryptedDataKey {
     }
 
     /**
-     * Parses a field corresponding to the length of a byte array. It looks
-     * for two bytes representing a short primitive type in the provided bytes
-     * starting at the specified off.
-     *
-     * <p>
-     * If successful, it returns the length read. On failure, it throws a parse exception.
-     *
-     * @param b
-     *            the byte array to parse.
-     * @param off
-     *            the offset in the byte array to use when parsing.
-     * @param name
-     *             the name of the field being parsed.
-     * @return
-     *         the value parsed.
-     * @throws ParseException
-     *             if there are not sufficient bytes to parse the length
-     *             or the length is negative
-     */
-    private short parseFieldLength(final byte[] b, final int off, final String name) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        if (len < 0) {
-	    throw new ParseException("Parsed negative length for " + name);
-        }
-        return len;
-    }
-    
-    /**
      * Parse the key provider identifier length in the provided bytes. It looks
      * for 2 bytes representing a short primitive type in the provided bytes
      * starting at the specified off.
@@ -124,10 +97,10 @@ public final class KeyBlob implements EncryptedDataKey {
      *         primitive.
      * @throws ParseException
      *             if there are not sufficient bytes to parse the identifier
-     *             length or the length is negative.
+     *             length.
      */
     private int parseKeyProviderIdLen(final byte[] b, final int off) throws ParseException {
-        keyProviderIdLen_ = parseFieldLength(b, off, "key provider id");
+	keyProviderIdLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         return Short.SIZE / Byte.SIZE;
     }
 
@@ -178,10 +151,10 @@ public final class KeyBlob implements EncryptedDataKey {
      *         primitive type.
      * @throws ParseException
      *             if there are not sufficient bytes to parse the provider info
-     *             length or the length is negative.
+     *             length.
      */
     private int parseKeyProviderInfoLen(final byte[] b, final int off) throws ParseException {
-        keyProviderInfoLen_ = parseFieldLength(b, off, "key provider info");
+        keyProviderInfoLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         return Short.SIZE / Byte.SIZE;
     }
 
@@ -234,7 +207,7 @@ public final class KeyBlob implements EncryptedDataKey {
      *             if there are not sufficient bytes to parse the key length.
      */
     private int parseKeyLen(final byte[] b, final int off) throws ParseException {
-        encryptedKeyLen_ = parseFieldLength(b, off, "key");
+        encryptedKeyLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         return Short.SIZE / Byte.SIZE;
     }
 
@@ -331,13 +304,13 @@ public final class KeyBlob implements EncryptedDataKey {
         final int outLen = 3 * (Short.SIZE / Byte.SIZE) + keyProviderIdLen_ + keyProviderInfoLen_ + encryptedKeyLen_;
         final ByteBuffer out = ByteBuffer.allocate(outLen);
 
-        out.putShort(keyProviderIdLen_);
+        out.putShort((short) keyProviderIdLen_);
         out.put(keyProviderId_, 0, keyProviderIdLen_);
 
-        out.putShort(keyProviderInfoLen_);
+        out.putShort((short) keyProviderInfoLen_);
         out.put(keyProviderInfo_, 0, keyProviderInfoLen_);
 
-        out.putShort(encryptedKeyLen_);
+        out.putShort((short) encryptedKeyLen_);
         out.put(encryptedKey_, 0, encryptedKeyLen_);
 
         return out.array();
@@ -361,7 +334,7 @@ public final class KeyBlob implements EncryptedDataKey {
      * @return
      *         the length of the key provider identifier.
      */
-    public short getKeyProviderIdLen() {
+    public int getKeyProviderIdLen() {
         return keyProviderIdLen_;
     }
 
@@ -382,7 +355,7 @@ public final class KeyBlob implements EncryptedDataKey {
      * @return
      *         the length of the key provider info.
      */
-    public short getKeyProviderInfoLen() {
+    public int getKeyProviderInfoLen() {
         return keyProviderInfoLen_;
     }
 
@@ -403,7 +376,7 @@ public final class KeyBlob implements EncryptedDataKey {
      * @return
      *         the length of the encrypted data key.
      */
-    public short getEncryptedDataKeyLen() {
+    public int getEncryptedDataKeyLen() {
         return encryptedKeyLen_;
     }
 
@@ -426,12 +399,12 @@ public final class KeyBlob implements EncryptedDataKey {
      */
     public void setKeyProviderId(final String keyProviderId) {
         final byte[] keyProviderIdBytes = keyProviderId.getBytes(StandardCharsets.UTF_8);
-        if (keyProviderIdBytes.length > Short.MAX_VALUE) {
+        if (keyProviderIdBytes.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(
-                    "Key provider identifier length exceeds the max value of a short primitive.");
+                    "Key provider identifier length exceeds the max value of an unsigned short primitive.");
         }
         keyProviderId_ = keyProviderIdBytes;
-        keyProviderIdLen_ = (short) keyProviderId_.length;
+        keyProviderIdLen_ = keyProviderId_.length;
     }
 
     /**
@@ -442,12 +415,12 @@ public final class KeyBlob implements EncryptedDataKey {
      *            identifier.
      */
     public void setKeyProviderInfo(final byte[] keyProviderInfo) {
-        if (keyProviderInfo.length > Short.MAX_VALUE) {
+        if (keyProviderInfo.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(
-                    "Key provider identifier information length exceeds the max value of a short primitive.");
+                    "Key provider identifier information length exceeds the max value of an unsigned short primitive.");
         }
         keyProviderInfo_ = keyProviderInfo.clone();
-        keyProviderInfoLen_ = (short) keyProviderInfo.length;
+        keyProviderInfoLen_ = keyProviderInfo.length;
     }
 
     /**
@@ -457,10 +430,10 @@ public final class KeyBlob implements EncryptedDataKey {
      *            the bytes containing the encrypted data key.
      */
     public void setEncryptedDataKey(final byte[] encryptedDataKey) {
-        if (encryptedDataKey.length > Short.MAX_VALUE) {
-            throw new AwsCryptoException("Key length exceeds the max value of a short primitive.");
+        if (encryptedDataKey.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
+            throw new AwsCryptoException("Key length exceeds the max value of an unsigned short primitive.");
         }
         encryptedKey_ = encryptedDataKey.clone();
-        encryptedKeyLen_ = (short) encryptedKey_.length;
+        encryptedKeyLen_ = encryptedKey_.length;
     }
 }
