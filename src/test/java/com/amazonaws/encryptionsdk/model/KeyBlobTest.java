@@ -17,6 +17,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -173,13 +174,9 @@ public class KeyBlobTest {
     }
 
     private KeyBlob generateRandomKeyBlob(int idLen, int infoLen, int keyLen) {
-        final byte[] idBytes = RandomBytesGenerator.generate(idLen);
-        // negative bytes translate into U+FFFD, so no thanks
-        for (int i = 0; i < idBytes.length; i++) {
-            if (idBytes[i] < 0) {
-                idBytes[i] = (byte) (idBytes[i] - Byte.MIN_VALUE);
-            }
-        }
+        final byte[] idBytes = new byte[idLen];
+        Arrays.fill(idBytes, (byte) 'A');
+
         final byte[] infoBytes = RandomBytesGenerator.generate(infoLen);
         final byte[] keyBytes = RandomBytesGenerator.generate(keyLen);
 
@@ -196,7 +193,7 @@ public class KeyBlobTest {
     @Test
     public void checkKeyProviderIdLenUnsigned() {
         // provider id length is too large for a signed short but fits in unsigned
-        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE + 1, Short.MAX_VALUE, Short.MAX_VALUE);
+        final KeyBlob blob = generateRandomKeyBlob(Constants.UNSIGNED_SHORT_MAX_VAL, Short.MAX_VALUE, Short.MAX_VALUE);
         final byte[] arr = blob.toByteArray();
 
         assertKeyBlobsEqual(deserialize(arr), blob);
@@ -205,7 +202,7 @@ public class KeyBlobTest {
     @Test
     public void checkKeyProviderInfoLenUnsigned() {
         // provider info length is too large for a signed short but fits in unsigned
-        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE + 2, Short.MAX_VALUE);
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Constants.UNSIGNED_SHORT_MAX_VAL, Short.MAX_VALUE);
         final byte[] arr = blob.toByteArray();
 
         assertKeyBlobsEqual(deserialize(arr), blob);
@@ -214,7 +211,7 @@ public class KeyBlobTest {
     @Test
     public void checkKeyLenUnsigned() {
         // key length is too large for a signed short but fits in unsigned
-        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Short.MAX_VALUE + 3);
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Constants.UNSIGNED_SHORT_MAX_VAL);
         final byte[] arr = blob.toByteArray();
 
         assertKeyBlobsEqual(deserialize(arr), blob);
