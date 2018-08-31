@@ -203,6 +203,8 @@ public class PrimitivesParser {
     /**
      * Writes 2 bytes containing the unsigned value {@code uShort} to {@code out}.
      */
+    //@ // left as TODO because OpenJML/Specs does not have sufficiently detailed
+    //@ // specs for java.io.DataOutput
     //@ public normal_behavior
     //@   requires 0 <= uShort && uShort < -Short.MIN_VALUE-Short.MIN_VALUE;
     //@//    assignable TODO ...
@@ -252,38 +254,4 @@ public class PrimitivesParser {
             throw new ParseException("Not enough bytes to parse a byte.");
         }
     }
-//    
-//    // OPENJML - CAUTION - A solver may not see this operation as commutative
-//    //@ public normal_behavior
-//    //@   requires len >= 0;
-//    //@   requires 0 <= index1 && index1 <= bytes1.length - len;
-//    //@   requires 0 <= index2 && index2 <= bytes2.length - len;
-//    //@   ensures \result == (\forall int i; index1 <= i && i < index1 + len; bytes1[i] == bytes2[i-index1+index2]);
-//    //@ model public static pure helper function boolean equalArrays(byte[] bytes1, int index1, byte[] bytes2, int index2, int len);
-//    
-//    //@ public normal_behavior
-//    //@   ensures \result == (b >= 0 ? b : b + 256);
-//    //@ model public static pure helper function int asUnsigned(byte b);
-//    
-//    //@ public normal_behavior
-//    //@   ensures \result == (b >= 0 ? b : b + 256);
-//    //@ model public static pure helper function long asUnsignedL(byte b) { return (b >= 0 ? b : b + 256); }
-//    
-//    //@ public normal_behavior
-//    //@   ensures \result == (asUnsigned(b0)*256 + asUnsigned(b1));
-//    //@   ensures 0 <= \result && \result < (-2)*Short.MIN_VALUE;
-//    //@ model public static pure helper function int asUnsignedShort(byte b0, byte b1);
-//    
-//    //@ public normal_behavior
-//    //@   ensures \result == (short)(b0*256 + asUnsigned(b1));
-//    //@ model public static pure helper function short asShort(byte b0, byte b1);
-//    
-//    //@ public normal_behavior
-//    //@   ensures \result == (b0*(0x100_0000) + asUnsigned(b1)*(0x10000) + asUnsigned(b2)*(0x100) + asUnsigned(b3));
-//    //@ model public static pure helper function int asInt(byte b0, byte b1, byte b2, byte b3);
-//
-//    //@ public normal_behavior  // OPENJML FIXME - debug and cleanup
-//    //@   ensures \result == (b0*(0x100_0000_0000_0000L) + asUnsignedL(b1)*(0x10000_0000_0000L) + asUnsignedL(b2)*(0x100_0000_0000L) + (\lbl SB3 (\lbl UB3 asUnsignedL(b3))*(0x10000_0000L)) + (\lbl UB4 asUnsignedL(b4))*(0x100_0000L) + asUnsignedL(b5)*(0x10000L) + asUnsignedL(b6)*(0x100L) + asUnsignedL(b7));
-//    //@ model public static pure helper function long asLong(byte b0, byte b1, byte b2, byte b3, byte b4, byte b5, byte b6, byte b7);
-
 }
