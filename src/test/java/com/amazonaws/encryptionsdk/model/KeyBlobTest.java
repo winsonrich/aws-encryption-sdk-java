@@ -17,6 +17,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +27,7 @@ import org.junit.Test;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.DataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
+import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.internal.RandomBytesGenerator;
 import com.amazonaws.encryptionsdk.internal.StaticMasterKey;
 
@@ -76,7 +78,7 @@ public class KeyBlobTest {
 
         final DataKey<StaticMasterKey> mockDataKey = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
-        final int providerId_Len = Short.MAX_VALUE + 1;
+        final int providerId_Len = Constants.UNSIGNED_SHORT_MAX_VAL + 1;
         final byte[] providerId_Bytes = RandomBytesGenerator.generate(providerId_Len);
         final String providerId_ = new String(providerId_Bytes, StandardCharsets.UTF_8);
 
@@ -93,7 +95,7 @@ public class KeyBlobTest {
 
         final DataKey<StaticMasterKey> mockDataKey = masterKeyProvider_.generateDataKey(ALGORITHM, encryptionContext);
 
-        final int providerInfo_Len = Short.MAX_VALUE + 1;
+        final int providerInfo_Len = Constants.UNSIGNED_SHORT_MAX_VAL + 1;
         final byte[] providerInfo_ = RandomBytesGenerator.generate(providerInfo_Len);
 
         new KeyBlob(providerId_, providerInfo_, mockDataKey.getEncryptedDataKey());
@@ -101,7 +103,7 @@ public class KeyBlobTest {
 
     @Test(expected = AwsCryptoException.class)
     public void overlyLargeKey() {
-        final int keyLen = Short.MAX_VALUE + 1;
+        final int keyLen = Constants.UNSIGNED_SHORT_MAX_VAL + 1;
         final byte[] encryptedKeyBytes = RandomBytesGenerator.generate(keyLen);
 
         new KeyBlob(providerId_, providerInfo_.getBytes(StandardCharsets.UTF_8), encryptedKeyBytes);
@@ -169,5 +171,49 @@ public class KeyBlobTest {
         final KeyBlob reconstructedKeyBlob = deserialize(keyBlobBytes);
 
         assertEquals(mockDataKey_.getEncryptedDataKey().length, reconstructedKeyBlob.getEncryptedDataKeyLen());
+    }
+
+    private KeyBlob generateRandomKeyBlob(int idLen, int infoLen, int keyLen) {
+        final byte[] idBytes = new byte[idLen];
+        Arrays.fill(idBytes, (byte) 'A');
+
+        final byte[] infoBytes = RandomBytesGenerator.generate(infoLen);
+        final byte[] keyBytes = RandomBytesGenerator.generate(keyLen);
+
+        return new KeyBlob(new String(idBytes, StandardCharsets.UTF_8), infoBytes, keyBytes);
+    }
+
+    private void assertKeyBlobsEqual(KeyBlob b1, KeyBlob b2) {
+        assertArrayEquals(b1.getProviderId().getBytes(StandardCharsets.UTF_8),
+                          b2.getProviderId().getBytes(StandardCharsets.UTF_8));
+        assertArrayEquals(b1.getProviderInformation(), b2.getProviderInformation());
+        assertArrayEquals(b1.getEncryptedDataKey(), b2.getEncryptedDataKey());
+    }
+    
+    @Test
+    public void checkKeyProviderIdLenUnsigned() {
+        // provider id length is too large for a signed short but fits in unsigned
+        final KeyBlob blob = generateRandomKeyBlob(Constants.UNSIGNED_SHORT_MAX_VAL, Short.MAX_VALUE, Short.MAX_VALUE);
+        final byte[] arr = blob.toByteArray();
+
+        assertKeyBlobsEqual(deserialize(arr), blob);
+    }
+
+    @Test
+    public void checkKeyProviderInfoLenUnsigned() {
+        // provider info length is too large for a signed short but fits in unsigned
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Constants.UNSIGNED_SHORT_MAX_VAL, Short.MAX_VALUE);
+        final byte[] arr = blob.toByteArray();
+
+        assertKeyBlobsEqual(deserialize(arr), blob);
+    }
+
+    @Test
+    public void checkKeyLenUnsigned() {
+        // key length is too large for a signed short but fits in unsigned
+        final KeyBlob blob = generateRandomKeyBlob(Short.MAX_VALUE, Short.MAX_VALUE, Constants.UNSIGNED_SHORT_MAX_VAL);
+        final byte[] arr = blob.toByteArray();
+
+        assertKeyBlobsEqual(deserialize(arr), blob);
     }
 }
