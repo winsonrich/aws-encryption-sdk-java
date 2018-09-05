@@ -187,6 +187,7 @@ public class PrimitivesParser {
    //@ public normal_behavior
    //@   requires 0 <= off && off <= b.length - Short.BYTES;
    //@   ensures \result == Short.asUnsignedToInt(Short.asShort(b[off], b[off+1]));
+   //@   ensures \result >= 0 && \result <= Constants.UNSIGNED_SHORT_MAX_VAL;
    //@ also private exceptional_behavior
    //@   requires b.length - Short.BYTES < off;
    //@   signals_only ParseException;

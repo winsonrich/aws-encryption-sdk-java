@@ -20,6 +20,7 @@ import java.util.Arrays;
 import com.amazonaws.encryptionsdk.EncryptedDataKey;
 import com.amazonaws.encryptionsdk.exception.AwsCryptoException;
 import com.amazonaws.encryptionsdk.exception.ParseException;
+import com.amazonaws.encryptionsdk.internal.Constants;
 import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
 
 /**
@@ -42,13 +43,17 @@ import com.amazonaws.encryptionsdk.internal.PrimitivesParser;
  */
 //@ nullable_by_default
 public final class KeyBlob implements EncryptedDataKey {
-    private short keyProviderIdLen_ = -1;  //@ in providerId;
+    private int keyProviderIdLen_ = -1;  //@ in providerId;
     private byte[] keyProviderId_;  //@ in providerId;
-    private short keyProviderInfoLen_ = -1;  //@ in providerInformation;
+    private int keyProviderInfoLen_ = -1;  //@ in providerInformation;
     private byte[] keyProviderInfo_;  //@ in providerInformation;
-    private short encryptedKeyLen_ = -1;  //@ in encryptedDataKey;
+    private int encryptedKeyLen_ = -1;  //@ in encryptedDataKey;
     private byte[] encryptedKey_;  //@ in encryptedDataKey;
 
+    //@ private invariant keyProviderIdLen_ <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    //@ private invariant keyProviderInfoLen_ <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    //@ private invariant encryptedKeyLen_ <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    
     //@// KeyBlob implements EncryptedDataKey, which defines three model fields.
     //@// For a KeyBlob, these model fields correspond directly to some underlying
     //@// Java fields, as expressed by the following "represents" declarations:
@@ -118,9 +123,9 @@ public final class KeyBlob implements EncryptedDataKey {
      *            the encrypted bytes of the data key.
      */
     //@ public normal_behavior
-    //@   requires keyProviderId != null && EncryptedDataKey.s2ba(keyProviderId).length <= Short.MAX_VALUE;
-    //@   requires keyProviderInfo != null && keyProviderInfo.length <= Short.MAX_VALUE;
-    //@   requires encryptedDataKey != null && encryptedDataKey.length <= Short.MAX_VALUE;
+    //@   requires keyProviderId != null && EncryptedDataKey.s2ba(keyProviderId).length <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    //@   requires keyProviderInfo != null && keyProviderInfo.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    //@   requires encryptedDataKey != null && encryptedDataKey.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   ensures \fresh(providerId);
     //@   ensures Arrays.equalArrays(providerId, EncryptedDataKey.s2ba(keyProviderId));
     //@   ensures \fresh(providerInformation);
@@ -131,7 +136,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@ also
     //@ public exceptional_behavior
     //@   requires keyProviderId != null && keyProviderInfo != null && encryptedDataKey != null;
-    //@   requires Short.MAX_VALUE < EncryptedDataKey.s2ba(keyProviderId).length || Short.MAX_VALUE < keyProviderInfo.length || Short.MAX_VALUE < encryptedDataKey.length;
+    //@   requires Constants.UNSIGNED_SHORT_MAX_VAL < EncryptedDataKey.s2ba(keyProviderId).length || Constants.UNSIGNED_SHORT_MAX_VAL < keyProviderInfo.length || Constants.UNSIGNED_SHORT_MAX_VAL < encryptedDataKey.length;
     //@   signals_only AwsCryptoException;
     //@ pure
     public KeyBlob(final String keyProviderId, final byte[] keyProviderInfo, final byte[] encryptedDataKey) {
@@ -142,9 +147,9 @@ public final class KeyBlob implements EncryptedDataKey {
     
     //@ public normal_behavior
     //@   requires edk != null && !edk.isDeserializing;
-    //@   requires edk.providerId != null && EncryptedDataKey.ba2s2ba(edk.providerId).length <= Short.MAX_VALUE;
-    //@   requires edk.providerInformation != null && edk.providerInformation.length <= Short.MAX_VALUE;
-    //@   requires edk.encryptedDataKey != null && edk.encryptedDataKey.length <= Short.MAX_VALUE;
+    //@   requires edk.providerId != null && EncryptedDataKey.ba2s2ba(edk.providerId).length <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    //@   requires edk.providerInformation != null && edk.providerInformation.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
+    //@   requires edk.encryptedDataKey != null && edk.encryptedDataKey.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   ensures \fresh(providerId);
     //@   ensures Arrays.equalArrays(providerId, EncryptedDataKey.ba2s2ba(edk.providerId));
     //@   ensures \fresh(providerInformation);
@@ -156,7 +161,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@ public exceptional_behavior
     //@   requires edk != null && !edk.isDeserializing;
     //@   requires edk.providerId != null && edk.providerInformation != null && edk.encryptedDataKey != null;
-    //@   requires Short.MAX_VALUE < EncryptedDataKey.ba2s2ba(edk.providerId).length || Short.MAX_VALUE < edk.providerInformation.length || Short.MAX_VALUE < edk.encryptedDataKey.length;
+    //@   requires Constants.UNSIGNED_SHORT_MAX_VAL < EncryptedDataKey.ba2s2ba(edk.providerId).length || Constants.UNSIGNED_SHORT_MAX_VAL < edk.providerInformation.length || Constants.UNSIGNED_SHORT_MAX_VAL < edk.encryptedDataKey.length;
     //@   signals_only AwsCryptoException;
     //@ pure
     public KeyBlob(final EncryptedDataKey edk) {
@@ -187,27 +192,19 @@ public final class KeyBlob implements EncryptedDataKey {
      *             if there are not sufficient bytes to parse the identifier
      *             length.
      */
-    //@ private behavior
+    //@ private normal_behavior
     //@   requires deserializing == 0 && keyProviderId_ == null;
     //@   requires b != null && 0 <= off && off <= b.length - Short.BYTES;
     //@   assignable keyProviderIdLen_, deserializing, isDeserializing;
     //@   ensures \result == Short.BYTES && deserializing == 1;
-    //@   signals_only ParseException;
-    //@   signals (ParseException e) deserializing == 0;
     //@ also
     //@ private exceptional_behavior
-    //@   requires deserializing == 0 && keyProviderId_ == null;
+    //@   requires keyProviderId_ == null;
     //@   requires b != null && 0 <= off && b.length - Short.BYTES < off;
     //@   assignable \nothing;
     //@   signals_only ParseException;
     private int parseKeyProviderIdLen(final byte[] b, final int off) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        //@// The following check was missing, but is needed to avoid an IllegalArgumentException
-        //@// when the "parseKeyProviderIdLen" caller ("deserialize()") calls "Arrays.copyOfRange".
-        if (len < 0) {
-            throw new ParseException("Parsed negative length for key provider id");
-        }
-        keyProviderIdLen_ = len;
+        keyProviderIdLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         //@ set deserializing = 1;
         return Short.SIZE / Byte.SIZE;
     }
@@ -274,13 +271,11 @@ public final class KeyBlob implements EncryptedDataKey {
      *             if there are not sufficient bytes to parse the provider info
      *             length.
      */
-    //@ private behavior
+    //@ private normal_behavior
     //@   requires deserializing == 0 && 0 <= keyProviderIdLen_ && keyProviderInfo_ == null;
     //@   requires b != null && 0 <= off && off <= b.length - Short.BYTES;
     //@   assignable keyProviderInfoLen_, deserializing, isDeserializing;
     //@   ensures \result == Short.BYTES && deserializing == 2;
-    //@   signals_only ParseException;
-    //@   signals (ParseException e) deserializing == 0;
     //@ also
     //@ private exceptional_behavior
     //@   requires deserializing == 0 && 0 <= keyProviderIdLen_ && keyProviderInfo_ == null;
@@ -288,13 +283,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   assignable \nothing;
     //@   signals_only ParseException;
     private int parseKeyProviderInfoLen(final byte[] b, final int off) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        //@// The following check was missing, but is needed to avoid an IllegalArgumentException
-        //@// when the "parseKeyProviderInfoLen" caller ("deserialize()") calls "Arrays.copyOfRange".
-        if (len < 0) {
-            throw new ParseException("Parsed negative length for key provider info");
-        }
-        keyProviderInfoLen_ = len;
+        keyProviderInfoLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         //@ set deserializing = 2;
         return Short.SIZE / Byte.SIZE;
     }
@@ -360,13 +349,11 @@ public final class KeyBlob implements EncryptedDataKey {
      * @throws ParseException
      *             if there are not sufficient bytes to parse the key length.
      */
-    //@ private behavior
+    //@ private normal_behavior
     //@   requires deserializing == 0 && 0 <= keyProviderIdLen_ && 0 <= keyProviderInfoLen_ && encryptedKey_ == null;
     //@   requires b != null && 0 <= off && off <= b.length - Short.BYTES;
     //@   assignable encryptedKeyLen_, deserializing, isDeserializing;
     //@   ensures \result == Short.BYTES && deserializing == 3;
-    //@   signals_only ParseException;
-    //@   signals (ParseException e) deserializing == 0;
     //@ also
     //@ private exceptional_behavior
     //@   requires deserializing == 0 && 0 <= keyProviderIdLen_ && 0 <= keyProviderInfoLen_ && encryptedKey_ == null;
@@ -374,13 +361,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   assignable \nothing;
     //@   signals_only ParseException;
     private int parseKeyLen(final byte[] b, final int off) throws ParseException {
-        short len = PrimitivesParser.parseShort(b, off);
-        //@// The following check was missing, but is needed to avoid an IllegalArgumentException
-        //@// when the "parseKeyLen" caller ("deserialize()") calls "Arrays.copyOfRange".
-        if (len < 0) {
-            throw new ParseException("Parsed negative length for key");
-        }
-        encryptedKeyLen_ = len;
+        encryptedKeyLen_ = PrimitivesParser.parseUnsignedShort(b, off);
         //@ set deserializing = 3;
         return Short.SIZE / Byte.SIZE;
     }
@@ -510,13 +491,16 @@ public final class KeyBlob implements EncryptedDataKey {
         final int outLen = 3 * (Short.SIZE / Byte.SIZE) + keyProviderIdLen_ + keyProviderInfoLen_ + encryptedKeyLen_;
         final ByteBuffer out = ByteBuffer.allocate(outLen);
 
-        out.putShort(keyProviderIdLen_);
+        //@ // JML bug: it treats it as an error to cast a value too large to be
+        //@ // a signed short (but small enough to be an unsigned short) to short
+        //@ // see https://github.com/OpenJML/OpenJML/issues/649
+        out.putShort((short) keyProviderIdLen_);
         out.put(keyProviderId_, 0, keyProviderIdLen_);
 
-        out.putShort(keyProviderInfoLen_);
+        out.putShort((short) keyProviderInfoLen_);
         out.put(keyProviderInfo_, 0, keyProviderInfoLen_);
 
-        out.putShort(encryptedKeyLen_);
+        out.putShort((short) encryptedKeyLen_);
         out.put(encryptedKey_, 0, encryptedKeyLen_);
 
         return out.array();
@@ -548,7 +532,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   ensures providerId == null ==> \result < 0;
     //@   ensures providerId != null ==> \result == providerId.length;
     //@ pure
-    public short getKeyProviderIdLen() {
+    public int getKeyProviderIdLen() {
         return keyProviderIdLen_;
     }
 
@@ -580,7 +564,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   ensures providerInformation == null ==> \result < 0;
     //@   ensures providerInformation != null ==> \result == providerInformation.length;
     //@ pure
-    public short getKeyProviderInfoLen() {
+    public int getKeyProviderInfoLen() {
         return keyProviderInfoLen_;
     }
 
@@ -606,7 +590,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   ensures encryptedDataKey == null ==> \result < 0;
     //@   ensures encryptedDataKey != null ==> \result == encryptedDataKey.length;
     //@ pure
-    public short getEncryptedDataKeyLen() {
+    public int getEncryptedDataKeyLen() {
         return encryptedKeyLen_;
     }
 
@@ -629,30 +613,30 @@ public final class KeyBlob implements EncryptedDataKey {
      */
     //@ public normal_behavior
     //@   requires !isDeserializing;
-    //@   requires keyProviderId != null && EncryptedDataKey.s2ba(keyProviderId).length <= Short.MAX_VALUE;
+    //@   requires keyProviderId != null && EncryptedDataKey.s2ba(keyProviderId).length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable providerId;
     //@   ensures \fresh(providerId);
     //@   ensures Arrays.equalArrays(providerId, EncryptedDataKey.s2ba(keyProviderId));
     //@ also
     //@ private normal_behavior  // TODO: this behavior is a temporary workaround
     //@   requires !isDeserializing;
-    //@   requires keyProviderId != null && EncryptedDataKey.s2ba(keyProviderId).length <= Short.MAX_VALUE;
+    //@   requires keyProviderId != null && EncryptedDataKey.s2ba(keyProviderId).length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable keyProviderId_, keyProviderIdLen_;
     //@ also
     //@ public exceptional_behavior
     //@   requires !isDeserializing;
-    //@   requires keyProviderId != null && Short.MAX_VALUE < EncryptedDataKey.s2ba(keyProviderId).length;
+    //@   requires keyProviderId != null && Constants.UNSIGNED_SHORT_MAX_VAL < EncryptedDataKey.s2ba(keyProviderId).length;
     //@   assignable \nothing;
     //@   signals_only AwsCryptoException;
     public void setKeyProviderId(final String keyProviderId) {
         final byte[] keyProviderIdBytes = keyProviderId.getBytes(StandardCharsets.UTF_8);
         //@ assume Arrays.equalArrays(keyProviderIdBytes, EncryptedDataKey.s2ba(keyProviderId));
-        if (keyProviderIdBytes.length > Short.MAX_VALUE) {
+        if (keyProviderIdBytes.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(
                     "Key provider identifier length exceeds the max value of a short primitive.");
         }
         keyProviderId_ = keyProviderIdBytes;
-        keyProviderIdLen_ = (short) keyProviderId_.length;
+        keyProviderIdLen_ = keyProviderId_.length;
     }
 
     /**
@@ -664,28 +648,28 @@ public final class KeyBlob implements EncryptedDataKey {
      */
     //@ public normal_behavior
     //@   requires !isDeserializing;
-    //@   requires keyProviderInfo != null && keyProviderInfo.length <= Short.MAX_VALUE;
+    //@   requires keyProviderInfo != null && keyProviderInfo.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable providerInformation;
     //@   ensures \fresh(providerInformation);
     //@   ensures Arrays.equalArrays(providerInformation, keyProviderInfo);
     //@ also
     //@ private normal_behavior  // TODO: this behavior is a temporary workaround
     //@   requires !isDeserializing;
-    //@   requires keyProviderInfo != null && keyProviderInfo.length <= Short.MAX_VALUE;
+    //@   requires keyProviderInfo != null && keyProviderInfo.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable keyProviderInfo_, keyProviderInfoLen_;
     //@ also private exceptional_behavior
     //@   requires !isDeserializing;
     //@   requires keyProviderInfo != null;
-    //@   requires keyProviderInfo.length > Short.MAX_VALUE;
+    //@   requires keyProviderInfo.length > Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable \nothing;
     //@   signals_only AwsCryptoException;
     public void setKeyProviderInfo(final byte[] keyProviderInfo) {
-        if (keyProviderInfo.length > Short.MAX_VALUE) {
+        if (keyProviderInfo.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(
                     "Key provider identifier information length exceeds the max value of a short primitive.");
         }
         keyProviderInfo_ = keyProviderInfo.clone();
-        keyProviderInfoLen_ = (short) keyProviderInfo.length;
+        keyProviderInfoLen_ = keyProviderInfo.length;
     }
 
     /**
@@ -696,27 +680,27 @@ public final class KeyBlob implements EncryptedDataKey {
      */
     //@ public normal_behavior
     //@   requires !isDeserializing;
-    //@   requires encryptedDataKey != null && encryptedDataKey.length <= Short.MAX_VALUE;
+    //@   requires encryptedDataKey != null && encryptedDataKey.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable this.encryptedDataKey;
     //@   ensures \fresh(this.encryptedDataKey);
     //@   ensures Arrays.equalArrays(this.encryptedDataKey, encryptedDataKey);
     //@ also
     //@ private normal_behavior  // TODO: this behavior is a temporary workaround
     //@   requires !isDeserializing;
-    //@   requires encryptedDataKey != null && encryptedDataKey.length <= Short.MAX_VALUE;
+    //@   requires encryptedDataKey != null && encryptedDataKey.length <= Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable encryptedKey_, encryptedKeyLen_;
     //@ also
     //@ public exceptional_behavior
     //@   requires !isDeserializing;
     //@   requires encryptedDataKey != null;
-    //@   requires encryptedDataKey.length > Short.MAX_VALUE;
+    //@   requires encryptedDataKey.length > Constants.UNSIGNED_SHORT_MAX_VAL;
     //@   assignable \nothing;
     //@   signals_only AwsCryptoException;
     public void setEncryptedDataKey(final byte[] encryptedDataKey) {
-        if (encryptedDataKey.length > Short.MAX_VALUE) {
+        if (encryptedDataKey.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException("Key length exceeds the max value of a short primitive.");
         }
         encryptedKey_ = encryptedDataKey.clone();
-        encryptedKeyLen_ = (short) encryptedKey_.length;
+        encryptedKeyLen_ = encryptedKey_.length;
     }
 }
