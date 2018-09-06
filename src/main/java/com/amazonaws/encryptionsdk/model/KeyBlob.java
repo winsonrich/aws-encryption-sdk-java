@@ -171,7 +171,7 @@ public final class KeyBlob implements EncryptedDataKey {
         setKeyProviderId(s);
         setKeyProviderInfo(edk.getProviderInformation());
     }
-    
+
     /**
      * Parse the key provider identifier length in the provided bytes. It looks
      * for 2 bytes representing a short primitive type in the provided bytes
@@ -633,7 +633,7 @@ public final class KeyBlob implements EncryptedDataKey {
         //@ assume Arrays.equalArrays(keyProviderIdBytes, EncryptedDataKey.s2ba(keyProviderId));
         if (keyProviderIdBytes.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(
-                    "Key provider identifier length exceeds the max value of a short primitive.");
+                    "Key provider identifier length exceeds the max value of an unsigned short primitive.");
         }
         keyProviderId_ = keyProviderIdBytes;
         keyProviderIdLen_ = keyProviderId_.length;
@@ -666,7 +666,7 @@ public final class KeyBlob implements EncryptedDataKey {
     public void setKeyProviderInfo(final byte[] keyProviderInfo) {
         if (keyProviderInfo.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
             throw new AwsCryptoException(
-                    "Key provider identifier information length exceeds the max value of a short primitive.");
+                    "Key provider identifier information length exceeds the max value of an unsigned short primitive.");
         }
         keyProviderInfo_ = keyProviderInfo.clone();
         keyProviderInfoLen_ = keyProviderInfo.length;
@@ -698,7 +698,7 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   signals_only AwsCryptoException;
     public void setEncryptedDataKey(final byte[] encryptedDataKey) {
         if (encryptedDataKey.length > Constants.UNSIGNED_SHORT_MAX_VAL) {
-            throw new AwsCryptoException("Key length exceeds the max value of a short primitive.");
+            throw new AwsCryptoException("Key length exceeds the max value of an unsigned short primitive.");
         }
         encryptedKey_ = encryptedDataKey.clone();
         encryptedKeyLen_ = encryptedKey_.length;
