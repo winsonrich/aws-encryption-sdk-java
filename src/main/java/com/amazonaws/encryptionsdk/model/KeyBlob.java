@@ -487,13 +487,11 @@ public final class KeyBlob implements EncryptedDataKey {
     //@   assignable \nothing;
     //@   ensures \fresh(\result);
     //@   ensures \result.length == 3 * Short.BYTES + providerId.length + providerInformation.length + encryptedDataKey.length;
+    //@ code_java_math // necessary, or else casts to short are warnings
     public byte[] toByteArray() {
         final int outLen = 3 * (Short.SIZE / Byte.SIZE) + keyProviderIdLen_ + keyProviderInfoLen_ + encryptedKeyLen_;
         final ByteBuffer out = ByteBuffer.allocate(outLen);
 
-        //@ // JML bug: it treats it as an error to cast a value too large to be
-        //@ // a signed short (but small enough to be an unsigned short) to short
-        //@ // see https://github.com/OpenJML/OpenJML/issues/649
         out.putShort((short) keyProviderIdLen_);
         out.put(keyProviderId_, 0, keyProviderIdLen_);
 
